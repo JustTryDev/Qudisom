@@ -21,6 +21,7 @@ interface ScheduleStepProps {
   onEdit?: () => void;
   isActive: boolean;
   isCompleted: boolean;
+  testMode?: boolean; // 테스트 모드: 검증 스킵 가능 (Test mode: can skip validation)
   className?: string;
 }
 
@@ -32,6 +33,7 @@ export function ScheduleStep({
   onEdit,
   isActive,
   isCompleted,
+  testMode = false,
   className,
 }: ScheduleStepProps) {
   // 프리셋 선택 상태 (Preset selection state)
@@ -137,7 +139,7 @@ export function ScheduleStep({
       ))}
       <div className="flex items-center justify-between pt-2">
         <span className="text-sm font-medium text-gray-700">총 결제 금액</span>
-        <span className="text-base font-bold text-[#fab803]">
+        <span className="text-base font-bold text-[#1a2867]">
           {formatAmount(totalScheduleAmount)}원
         </span>
       </div>
@@ -163,28 +165,32 @@ export function ScheduleStep({
           </div>
         </div>
 
-        {/* 프리셋 선택 (Preset Selection) */}
-        <div className="space-y-3">
+        {/* 프리셋 선택 (Preset Selection) - 드롭다운 방식 */}
+        <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700">
             결제 조건 선택
           </label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          <select
+            value={selectedPreset || ''}
+            onChange={(e) => handlePresetSelect(e.target.value)}
+            className={cn(
+              'w-full h-12 rounded-xl border px-4 text-sm font-medium transition-colors appearance-none bg-white cursor-pointer',
+              'focus:border-[#1a2867] focus:outline-none focus:ring-2 focus:ring-[#1a2867]/20',
+              'border-gray-200 hover:border-gray-300'
+            )}
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 1rem center',
+            }}
+          >
+            <option value="" disabled>결제 조건을 선택하세요</option>
             {PAYMENT_TERM_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => handlePresetSelect(preset.id)}
-                className={cn(
-                  'rounded-xl border px-4 py-3 text-sm font-medium transition-all text-left',
-                  selectedPreset === preset.id
-                    ? 'border-[#fab803] bg-[#fab803]/5 text-gray-900'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                )}
-              >
+              <option key={preset.id} value={preset.id}>
                 {preset.label}
-              </button>
+              </option>
             ))}
-          </div>
+          </select>
         </div>
 
         {/* 결제 일정 목록 (Schedule List) */}
@@ -200,6 +206,7 @@ export function ScheduleStep({
                   schedule={schedule}
                   index={index}
                   totalCount={schedules.length}
+                  totalOrderAmount={totalOrderAmount}
                   onUpdate={(data) => handleUpdateSchedule(schedule.id, data)}
                   onRemove={() => handleRemoveSchedule(schedule.id)}
                   canRemove={schedules.length > 1}
@@ -234,8 +241,10 @@ export function ScheduleStep({
         {/* 액션 버튼 (Action Buttons) */}
         <StepCardActions
           onNext={onComplete}
+          onSkip={onComplete}
           nextLabel="다음 단계"
           nextDisabled={!canComplete}
+          testMode={testMode}
         />
       </div>
     </StepCard>
@@ -248,6 +257,7 @@ interface ScheduleItemProps {
   schedule: PaymentSchedule;
   index: number;
   totalCount: number;
+  totalOrderAmount: number;
   onUpdate: (data: Partial<PaymentSchedule>) => void;
   onRemove: () => void;
   canRemove: boolean;
@@ -257,6 +267,7 @@ function ScheduleItem({
   schedule,
   index,
   totalCount,
+  totalOrderAmount,
   onUpdate,
   onRemove,
   canRemove,
@@ -293,13 +304,15 @@ function ScheduleItem({
         )}
       </div>
 
-      {/* 금액 & 시점 (Amount & Timing) */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* 금액 & 시점 & 예정일 (Amount & Timing & Due Date) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <AmountInput
           label="금액"
           value={schedule.amount}
           onChange={(amount) => onUpdate({ amount })}
           size="sm"
+          percentageButtons={[100, 50, 30]}
+          totalAmount={totalOrderAmount}
         />
 
         <div className="space-y-1.5">
@@ -311,7 +324,7 @@ function ScheduleItem({
             }
             className={cn(
               'w-full h-9 rounded-xl border px-3 text-sm transition-colors',
-              'focus:border-[#fab803] focus:outline-none focus:ring-2 focus:ring-[#fab803]/20',
+              'focus:border-[#1a2867] focus:outline-none focus:ring-2 focus:ring-[#1a2867]/20',
               'border-gray-200'
             )}
           >
@@ -321,6 +334,26 @@ function ScheduleItem({
               </option>
             ))}
           </select>
+        </div>
+
+        {/* 결제 예정일 (Payment Due Date) */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-gray-700">
+            <div className="flex items-center gap-1">
+              <Calendar className="h-3.5 w-3.5" />
+              결제 예정일
+            </div>
+          </label>
+          <input
+            type="date"
+            value={schedule.dueDate || ''}
+            onChange={(e) => onUpdate({ dueDate: e.target.value })}
+            className={cn(
+              'w-full h-9 rounded-xl border px-3 text-sm transition-colors',
+              'focus:border-[#1a2867] focus:outline-none focus:ring-2 focus:ring-[#1a2867]/20',
+              'border-gray-200'
+            )}
+          />
         </div>
       </div>
     </div>

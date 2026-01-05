@@ -1,12 +1,12 @@
 // 결제자 정보 폼 컴포넌트 (Payor Info Form Component)
+// 간소화 버전: 기본 정보만 수집, 사업자 정보는 MethodStep에서 필요 시 수집
 
 import React, { useCallback, useState } from 'react';
 import { cn } from '@/lib/utils';
-import type { PayorInfo, SavedPayor, BusinessInfoFields } from '../../types';
-import { EMPTY_BUSINESS_INFO_FIELDS, VALIDATION_RULES } from '../../utils/constants';
+import type { PayorInfo, PayorType, SavedPayor } from '../../types';
+import { VALIDATION_RULES } from '../../utils/constants';
 import { PayorTypeTabs, PayorTypeRadio } from './PayorTypeTabs';
 import { SavedPayorSelect } from './SavedPayorSelect';
-import { BusinessInfoForm, validateBusinessInfo } from '../business/BusinessInfoForm';
 import { FieldError, HelperText } from '../shared/ValidationMessage';
 
 interface PayorInfoFormProps {
@@ -46,26 +46,12 @@ export function PayorInfoForm({
   );
 
   const handleTypeChange = useCallback(
-    (type: 'personal' | 'company') => {
+    (type: PayorType) => {
       onChange({
         ...value,
         type,
         company: type === 'company' ? value.company : '',
-        businessInfo: type === 'company' ? value.businessInfo : undefined,
-      });
-    },
-    [value, onChange]
-  );
-
-  const handleBusinessInfoChange = useCallback(
-    (businessInfo: BusinessInfoFields) => {
-      onChange({
-        ...value,
-        businessInfo: {
-          source: 'manual',
-          isModified: true,
-          fields: businessInfo,
-        },
+        // businessInfo는 MethodStep에서 결제 수단 선택 시에만 수집
       });
     },
     [value, onChange]
@@ -80,7 +66,8 @@ export function PayorInfoForm({
 
   const handleAddNewPayor = useCallback(() => {
     onChange({
-      type: 'personal',
+      source: 'other',
+      type: 'individual',
       name: '',
       company: '',
       phone: '',
@@ -232,21 +219,8 @@ export function PayorInfoForm({
         </div>
       </div>
 
-      {/* 사업자 정보 (Business Info) - 회사인 경우만 */}
-      {isCompany && (
-        <div className="space-y-3 pt-4 border-t border-gray-100">
-          <h4 className="text-sm font-semibold text-gray-900">사업자 정보</h4>
-          <p className="text-xs text-gray-500">
-            세금계산서 발행을 위해 사업자 정보를 입력해주세요
-          </p>
-          <BusinessInfoForm
-            value={value.businessInfo?.fields || EMPTY_BUSINESS_INFO_FIELDS}
-            onChange={handleBusinessInfoChange}
-            disabled={disabled}
-            showAllFields={false}
-          />
-        </div>
-      )}
+      {/* 사업자 정보는 MethodStep에서 결제 수단 선택 시 필요한 경우에만 수집 */}
+      {/* (Business info is only collected in MethodStep when needed for the selected payment method) */}
 
       {/* 정보 저장 체크박스 (Save Info Checkbox) */}
       {showSaveCheckbox && (
@@ -275,21 +249,23 @@ interface PayorInfoSummaryProps {
 }
 
 export function PayorInfoSummary({ payor, className }: PayorInfoSummaryProps) {
+  const isCompany = payor.type === 'company';
+
   return (
     <div className={cn('space-y-2', className)}>
       <div className="flex items-center justify-between text-sm">
         <span className="text-gray-500">유형</span>
         <span className="font-medium text-gray-900">
-          {payor.type === 'company' ? '회사/기관' : '개인'}
+          {isCompany ? '회사/기관' : '개인'}
         </span>
       </div>
       <div className="flex items-center justify-between text-sm">
         <span className="text-gray-500">
-          {payor.type === 'company' ? '담당자' : '이름'}
+          {isCompany ? '담당자' : '이름'}
         </span>
         <span className="font-medium text-gray-900">{payor.name}</span>
       </div>
-      {payor.type === 'company' && payor.company && (
+      {isCompany && payor.company && (
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-500">회사명</span>
           <span className="font-medium text-gray-900">{payor.company}</span>

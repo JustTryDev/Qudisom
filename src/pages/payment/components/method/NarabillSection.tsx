@@ -84,6 +84,8 @@ export function NarabillSection({
           accept=".pdf,.doc,.docx,.hwp,.jpg,.jpeg,.png"
           maxFiles={5}
           description="PDF, DOC, HWP, 이미지 파일 (최대 5개)"
+          showInstructions
+          instructionsPlaceholder="이 파일에 대한 수정 요청 또는 코멘트를 입력해주세요"
           disabled={disabled}
         />
       </div>

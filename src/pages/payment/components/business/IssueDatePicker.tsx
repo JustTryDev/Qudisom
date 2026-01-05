@@ -1,6 +1,6 @@
 // 발행 희망 날짜 선택 컴포넌트 (Issue Date Picker Component)
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +22,49 @@ export function IssueDatePicker({
   className,
 }: IssueDatePickerProps) {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const [calendarPosition, setCalendarPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+
+  // 캘린더 위치 계산 (Calculate calendar position)
+  // fixed 포지셔닝을 사용하여 부모 컨테이너의 overflow:hidden 문제 해결
+  useEffect(() => {
+    if (isCalendarOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const calendarHeight = 320; // 캘린더 예상 높이 (Estimated calendar height)
+      const viewportHeight = window.innerHeight;
+
+      // 아래쪽 공간이 충분하면 아래에, 아니면 위에 표시 (Show below if space, else above)
+      const showAbove = rect.bottom + calendarHeight > viewportHeight && rect.top > calendarHeight;
+
+      setCalendarPosition({
+        top: showAbove ? rect.top - calendarHeight - 8 : rect.bottom + 8,
+        left: rect.left,
+      });
+    }
+  }, [isCalendarOpen]);
+
+  // 외부 클릭 시 캘린더 닫기 (Close calendar on outside click)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        calendarRef.current &&
+        !calendarRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setIsCalendarOpen(false);
+      }
+    };
+
+    if (isCalendarOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isCalendarOpen]);
 
   const handlePreferredChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,6 +133,7 @@ export function IssueDatePicker({
           {/* 날짜 입력 필드 (Date Input Field) */}
           <div className="relative">
             <button
+              ref={buttonRef}
               type="button"
               onClick={() => !disabled && setIsCalendarOpen(!isCalendarOpen)}
               disabled={disabled}
@@ -106,9 +150,16 @@ export function IssueDatePicker({
               <Calendar className="h-5 w-5 text-gray-400" />
             </button>
 
-            {/* 캘린더 드롭다운 (Calendar Dropdown) */}
+            {/* 캘린더 드롭다운 - fixed 위치로 overflow 문제 해결 (Calendar Dropdown - fixed position to fix overflow issue) */}
             {isCalendarOpen && (
-              <div className="absolute top-full left-0 mt-2 z-50">
+              <div
+                ref={calendarRef}
+                className="fixed z-[9999]"
+                style={{
+                  top: calendarPosition.top,
+                  left: calendarPosition.left,
+                }}
+              >
                 <SimpleDatePicker
                   value={value}
                   onChange={handleDateSelect}

@@ -7,6 +7,8 @@ import type {
   PaymentStep,
   PaymentSchedule,
   PayorInfo,
+  PayorMode,
+  SplitPayor,
   PaymentMethod,
   ProofDocument,
   StepStatus,
@@ -159,6 +161,91 @@ function paymentReducer(state: PaymentState, action: PaymentAction): PaymentStat
           ...state.payment,
           schedules: state.payment.schedules.map((s) =>
             s.id === scheduleId ? { ...s, payor } : s
+          ),
+        },
+      };
+    }
+
+    // 분할 결제자 액션 (Split Payor Actions)
+    case 'ADD_SPLIT_PAYOR':
+      return {
+        ...state,
+        payment: {
+          ...state.payment,
+          splitPayors: [...state.payment.splitPayors, action.payload],
+        },
+      };
+
+    case 'UPDATE_SPLIT_PAYOR': {
+      const { id, data } = action.payload;
+      return {
+        ...state,
+        payment: {
+          ...state.payment,
+          splitPayors: state.payment.splitPayors.map((sp) =>
+            sp.id === id ? { ...sp, ...data } : sp
+          ),
+        },
+      };
+    }
+
+    case 'REMOVE_SPLIT_PAYOR':
+      return {
+        ...state,
+        payment: {
+          ...state.payment,
+          splitPayors: state.payment.splitPayors.filter(
+            (sp) => sp.id !== action.payload
+          ),
+        },
+      };
+
+    // 분할 결제자 결제 수단 (Split Payor Payment Method)
+    case 'ADD_SPLIT_PAYOR_METHOD': {
+      const { splitPayorId, method } = action.payload;
+      return {
+        ...state,
+        payment: {
+          ...state.payment,
+          splitPayors: state.payment.splitPayors.map((sp) =>
+            sp.id === splitPayorId
+              ? { ...sp, methods: [...sp.methods, method] }
+              : sp
+          ),
+        },
+      };
+    }
+
+    case 'UPDATE_SPLIT_PAYOR_METHOD': {
+      const { splitPayorId, methodId, data } = action.payload;
+      return {
+        ...state,
+        payment: {
+          ...state.payment,
+          splitPayors: state.payment.splitPayors.map((sp) =>
+            sp.id === splitPayorId
+              ? {
+                  ...sp,
+                  methods: sp.methods.map((m) =>
+                    m.id === methodId ? { ...m, ...data } : m
+                  ),
+                }
+              : sp
+          ),
+        },
+      };
+    }
+
+    case 'REMOVE_SPLIT_PAYOR_METHOD': {
+      const { splitPayorId, methodId } = action.payload;
+      return {
+        ...state,
+        payment: {
+          ...state.payment,
+          splitPayors: state.payment.splitPayors.map((sp) =>
+            sp.id === splitPayorId
+              ? { ...sp, methods: sp.methods.filter((m) => m.id !== methodId) }
+              : sp
           ),
         },
       };
@@ -336,7 +423,7 @@ export function usePaymentState(initialPayment?: Partial<PaymentState>) {
   }, []);
 
   // 결제 주체 액션 (Payor Actions)
-  const setPayorMode = useCallback((mode: 'single' | 'per-schedule') => {
+  const setPayorMode = useCallback((mode: PayorMode) => {
     dispatch({ type: 'SET_PAYOR_MODE', payload: mode });
   }, []);
 
@@ -347,6 +434,50 @@ export function usePaymentState(initialPayment?: Partial<PaymentState>) {
   const setSchedulePayor = useCallback((scheduleId: string, payor: PayorInfo) => {
     dispatch({ type: 'SET_SCHEDULE_PAYOR', payload: { scheduleId, payor } });
   }, []);
+
+  // 분할 결제자 액션 (Split Payor Actions)
+  const addSplitPayor = useCallback((splitPayor: SplitPayor) => {
+    dispatch({ type: 'ADD_SPLIT_PAYOR', payload: splitPayor });
+  }, []);
+
+  const updateSplitPayor = useCallback(
+    (id: string, data: Partial<SplitPayor>) => {
+      dispatch({ type: 'UPDATE_SPLIT_PAYOR', payload: { id, data } });
+    },
+    []
+  );
+
+  const removeSplitPayor = useCallback((id: string) => {
+    dispatch({ type: 'REMOVE_SPLIT_PAYOR', payload: id });
+  }, []);
+
+  // 분할 결제자 결제 수단 액션 (Split Payor Payment Method Actions)
+  const addSplitPayorMethod = useCallback(
+    (splitPayorId: string, method: PaymentMethod) => {
+      dispatch({ type: 'ADD_SPLIT_PAYOR_METHOD', payload: { splitPayorId, method } });
+    },
+    []
+  );
+
+  const updateSplitPayorMethod = useCallback(
+    (splitPayorId: string, methodId: string, data: Partial<PaymentMethod>) => {
+      dispatch({
+        type: 'UPDATE_SPLIT_PAYOR_METHOD',
+        payload: { splitPayorId, methodId, data },
+      });
+    },
+    []
+  );
+
+  const removeSplitPayorMethod = useCallback(
+    (splitPayorId: string, methodId: string) => {
+      dispatch({
+        type: 'REMOVE_SPLIT_PAYOR_METHOD',
+        payload: { splitPayorId, methodId },
+      });
+    },
+    []
+  );
 
   // 결제 수단 액션 (Payment Method Actions)
   const addPaymentMethod = useCallback(
@@ -464,6 +595,16 @@ export function usePaymentState(initialPayment?: Partial<PaymentState>) {
     setPayorMode,
     setSinglePayor,
     setSchedulePayor,
+
+    // 분할 결제자 액션 (Split Payor Actions)
+    addSplitPayor,
+    updateSplitPayor,
+    removeSplitPayor,
+
+    // 분할 결제자 결제 수단 액션 (Split Payor Payment Method Actions)
+    addSplitPayorMethod,
+    updateSplitPayorMethod,
+    removeSplitPayorMethod,
 
     // 결제 수단 액션 (Payment Method Actions)
     addPaymentMethod,

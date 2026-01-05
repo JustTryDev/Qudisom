@@ -78,7 +78,7 @@ export function ProofSelector({
                 <Icon
                   className={cn(
                     'h-5 w-5',
-                    isSelected ? 'text-[#fab803]' : 'text-gray-500'
+                    isSelected ? 'text-[#1a2867]' : 'text-gray-500'
                   )}
                 />
               </div>
@@ -86,7 +86,7 @@ export function ProofSelector({
                 <p
                   className={cn(
                     'text-sm font-medium',
-                    isSelected ? 'text-[#fab803]' : 'text-gray-700'
+                    isSelected ? 'text-[#1a2867]' : 'text-gray-700'
                   )}
                 >
                   {option.label}

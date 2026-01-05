@@ -16,6 +16,8 @@ interface FileUploaderProps {
   description?: string;
   disabled?: boolean;
   error?: string;
+  showInstructions?: boolean; // 파일별 코멘트 표시 여부 (Show per-file comment input)
+  instructionsPlaceholder?: string; // 코멘트 플레이스홀더 (Comment placeholder)
   className?: string;
 }
 
@@ -30,6 +32,8 @@ export function FileUploader({
   description,
   disabled = false,
   error,
+  showInstructions = false,
+  instructionsPlaceholder,
   className,
 }: FileUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -118,6 +122,16 @@ export function FileUploader({
     [files, onFilesChange]
   );
 
+  // 파일별 코멘트 변경 핸들러 (Per-file comment change handler)
+  const handleInstructionsChange = useCallback(
+    (id: string, instructions: string) => {
+      onFilesChange(
+        files.map((f) => (f.id === id ? { ...f, instructions } : f))
+      );
+    },
+    [files, onFilesChange]
+  );
+
   const handleClick = useCallback(() => {
     if (!disabled && inputRef.current) {
       inputRef.current.click();
@@ -186,6 +200,11 @@ export function FileUploader({
               key={file.id}
               file={file}
               onRemove={() => handleRemove(file.id)}
+              onInstructionsChange={(instructions) =>
+                handleInstructionsChange(file.id, instructions)
+              }
+              showInstructions={showInstructions}
+              instructionsPlaceholder={instructionsPlaceholder}
               disabled={disabled}
             />
           ))}
@@ -200,36 +219,98 @@ export function FileUploader({
 interface FileItemProps {
   file: UploadedFile;
   onRemove: () => void;
+  onInstructionsChange?: (instructions: string) => void; // 코멘트 변경 핸들러 (Comment change handler)
+  showInstructions?: boolean; // 코멘트 입력 표시 여부 (Show comment input)
+  instructionsPlaceholder?: string; // 코멘트 플레이스홀더 (Comment placeholder)
   disabled?: boolean;
   className?: string;
 }
 
-export function FileItem({ file, onRemove, disabled, className }: FileItemProps) {
+export function FileItem({
+  file,
+  onRemove,
+  onInstructionsChange,
+  showInstructions = false,
+  instructionsPlaceholder = '작성 가이드나 수정 요청 사항을 입력해주세요',
+  disabled,
+  className,
+}: FileItemProps) {
   const Icon = getFileIcon(file.type);
+  const [isExpanded, setIsExpanded] = React.useState(false);
 
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3',
+        'rounded-xl border border-gray-200 bg-gray-50 overflow-hidden',
         className
       )}
     >
-      <div className="rounded-lg bg-white p-2 border border-gray-100">
-        <Icon className="h-5 w-5 text-gray-500" />
+      {/* 파일 정보 헤더 (File Info Header) */}
+      <div className="flex items-center gap-3 p-3">
+        <div className="rounded-lg bg-white p-2 border border-gray-100">
+          <Icon className="h-5 w-5 text-gray-500" />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+          <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+        </div>
+
+        <div className="flex items-center gap-1">
+          {/* 코멘트 토글 버튼 (Comment Toggle Button) */}
+          {showInstructions && onInstructionsChange && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className={cn(
+                'shrink-0 rounded-lg px-2 py-1 text-xs font-medium transition-colors',
+                isExpanded || file.instructions
+                  ? 'bg-[#fab803]/10 text-[#fab803]'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              )}
+            >
+              {file.instructions ? '코멘트 수정' : '코멘트 추가'}
+            </button>
+          )}
+
+          {!disabled && (
+            <button
+              onClick={onRemove}
+              className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
-        <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
-      </div>
+      {/* 코멘트 입력 영역 (Comment Input Area) */}
+      {showInstructions && onInstructionsChange && isExpanded && (
+        <div className="px-3 pb-3 pt-0">
+          <textarea
+            value={file.instructions}
+            onChange={(e) => onInstructionsChange(e.target.value)}
+            placeholder={instructionsPlaceholder}
+            disabled={disabled}
+            rows={2}
+            className={cn(
+              'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder:text-gray-400 resize-none transition-colors',
+              'focus:border-[#fab803] focus:outline-none focus:ring-2 focus:ring-[#fab803]/20',
+              'disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed'
+            )}
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            예: &quot;표지 이미지를 더 선명하게 해주세요&quot;
+          </p>
+        </div>
+      )}
 
-      {!disabled && (
-        <button
-          onClick={onRemove}
-          className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
+      {/* 저장된 코멘트 표시 (Saved Comment Display) - 축소 상태일 때 */}
+      {showInstructions && file.instructions && !isExpanded && (
+        <div className="px-3 pb-3 pt-0">
+          <p className="text-xs text-gray-600 bg-white rounded-lg border border-gray-100 p-2">
+            💬 {file.instructions}
+          </p>
+        </div>
       )}
     </div>
   );

@@ -17,6 +17,9 @@ interface AmountInputProps {
   label?: string;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  // 퍼센티지 버튼 기능 (Percentage buttons feature)
+  percentageButtons?: number[]; // 예: [100, 50, 30]
+  totalAmount?: number; // 퍼센티지 계산 기준 금액
 }
 
 export function AmountInput({
@@ -33,6 +36,8 @@ export function AmountInput({
   label,
   className,
   size = 'md',
+  percentageButtons,
+  totalAmount,
 }: AmountInputProps) {
   const [displayValue, setDisplayValue] = useState<string>(
     value > 0 ? formatAmount(value) : ''
@@ -84,10 +89,23 @@ export function AmountInput({
     onFullClick?.();
   }, [fullAmount, onChange, onFullClick]);
 
+  // 퍼센티지 버튼 클릭 핸들러 (Percentage button click handler)
+  const handlePercentageClick = useCallback(
+    (percentage: number) => {
+      if (totalAmount === undefined) return;
+      const newAmount = Math.floor((totalAmount * percentage) / 100);
+      setDisplayValue(formatAmount(newAmount));
+      onChange(newAmount);
+    },
+    [totalAmount, onChange]
+  );
+
+  // 오른쪽에 "원" 글자가 들어갈 공간 확보를 위해 pr을 넉넉히 설정
+  // (Ensure enough right padding for "원" suffix)
   const sizeClasses = {
-    sm: 'h-9 text-sm px-3',
-    md: 'h-11 text-base px-4',
-    lg: 'h-14 text-lg px-5',
+    sm: 'h-9 text-sm pl-3 pr-10',
+    md: 'h-11 text-base pl-4 pr-12',
+    lg: 'h-14 text-lg pl-5 pr-14',
   };
 
   return (
@@ -139,6 +157,29 @@ export function AmountInput({
           >
             전액
           </button>
+        )}
+
+        {/* 퍼센티지 버튼 (Percentage Buttons) */}
+        {percentageButtons && percentageButtons.length > 0 && totalAmount !== undefined && (
+          <div className="flex gap-1.5">
+            {percentageButtons.map((pct) => (
+              <button
+                key={pct}
+                type="button"
+                onClick={() => handlePercentageClick(pct)}
+                disabled={disabled}
+                className={cn(
+                  'shrink-0 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors',
+                  value === Math.floor((totalAmount * pct) / 100)
+                    ? 'border-[#1a2867] bg-[#1a2867] text-white'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-[#1a2867] hover:text-[#1a2867]',
+                  'disabled:opacity-50 disabled:cursor-not-allowed'
+                )}
+              >
+                {pct}%
+              </button>
+            ))}
+          </div>
         )}
       </div>
 

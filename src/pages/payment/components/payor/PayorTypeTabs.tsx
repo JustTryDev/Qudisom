@@ -3,8 +3,7 @@
 import React from 'react';
 import { User, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-type PayorType = 'personal' | 'company';
+import type { PayorType } from '../../types';
 
 interface PayorTypeTabsProps {
   value: PayorType;
@@ -20,7 +19,7 @@ export function PayorTypeTabs({
   className,
 }: PayorTypeTabsProps) {
   const tabs: { type: PayorType; label: string; icon: React.ElementType }[] = [
-    { type: 'personal', label: '개인', icon: User },
+    { type: 'individual', label: '개인', icon: User },
     { type: 'company', label: '회사/기관', icon: Building2 },
   ];
 
@@ -61,8 +60,8 @@ interface PayorTypeBadgeProps {
 }
 
 export function PayorTypeBadge({ type, className }: PayorTypeBadgeProps) {
-  const config = {
-    personal: {
+  const configMap: Record<PayorType, { icon: React.ElementType; label: string; className: string }> = {
+    individual: {
       icon: User,
       label: '개인',
       className: 'bg-blue-100 text-blue-700',
@@ -72,8 +71,9 @@ export function PayorTypeBadge({ type, className }: PayorTypeBadgeProps) {
       label: '회사/기관',
       className: 'bg-purple-100 text-purple-700',
     },
-  }[type];
+  };
 
+  const config = configMap[type];
   const Icon = config.icon;
 
   return (
@@ -107,7 +107,7 @@ export function PayorTypeRadio({
 }: PayorTypeRadioProps) {
   const options: { type: PayorType; label: string; description: string; icon: React.ElementType }[] = [
     {
-      type: 'personal',
+      type: 'individual',
       label: '개인',
       description: '개인 고객으로 결제합니다',
       icon: User,
@@ -149,7 +149,7 @@ export function PayorTypeRadio({
               <Icon
                 className={cn(
                   'h-5 w-5',
-                  isSelected ? 'text-[#fab803]' : 'text-gray-500'
+                  isSelected ? 'text-[#1a2867]' : 'text-gray-500'
                 )}
               />
             </div>

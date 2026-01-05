@@ -1,4 +1,7 @@
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+// HashRouter를 사용하여 GitHub Pages에서 SPA 라우팅 지원
+// (Using HashRouter for SPA routing support on GitHub Pages)
+// URL 형식: https://justtrydev.github.io/Qudisom/#/dashboard
+import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 // Auth pages
 import { SignupCarousel } from './src/pages/auth/SignupCarousel';

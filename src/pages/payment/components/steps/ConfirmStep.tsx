@@ -1,9 +1,9 @@
 // Step 5: 최종 확인 컴포넌트 (Confirm Step Component)
 
 import React, { useMemo } from 'react';
-import { Check, AlertTriangle, Wallet, FileSignature, Loader2 } from 'lucide-react';
+import { Check, AlertTriangle, Wallet, FileSignature, Loader2, User, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { UnifiedPayment, PaymentSchedule } from '../../types';
+import type { UnifiedPayment, PaymentSchedule, SplitPayor } from '../../types';
 import { PAYMENT_TIMINGS, PAYMENT_METHOD_MAP } from '../../utils/constants';
 import { formatAmount } from '../shared/AmountInput';
 import { ContractWarning } from '../shared/ContractWarning';
@@ -81,10 +81,12 @@ export function ConfirmStep({
         <div className="space-y-3 pt-4 border-t border-gray-100">
           <h4 className="text-sm font-semibold text-gray-900">결제자 정보</h4>
 
+          {/* 단일 결제자 모드 (Single Payor Mode) */}
           {payment.payorMode === 'single' && payment.singlePayor && (
             <PayorSummaryCard payor={payment.singlePayor} />
           )}
 
+          {/* 일정별 결제자 모드 (Per-Schedule Payor Mode) */}
           {payment.payorMode === 'per-schedule' && (
             <div className="space-y-2">
               {payment.schedules.map((schedule) =>
@@ -95,6 +97,15 @@ export function ConfirmStep({
                   </div>
                 ) : null
               )}
+            </div>
+          )}
+
+          {/* 분할 결제자 모드 (Split Payor Mode) */}
+          {payment.payorMode === 'split-amount' && payment.splitPayors.length > 0 && (
+            <div className="space-y-3">
+              {payment.splitPayors.map((sp) => (
+                <SplitPayorSummaryCard key={sp.id} splitPayor={sp} />
+              ))}
             </div>
           )}
         </div>
@@ -148,7 +159,7 @@ export function ConfirmStep({
                       Math.min(availableDeposit, totalScheduleAmount)
                     )
                   }
-                  className="px-3 py-2 text-sm font-medium text-[#fab803] hover:bg-[#fab803]/10 rounded-lg transition-colors"
+                  className="px-3 py-2 text-sm font-medium text-[#1a2867] hover:bg-[#fab803]/10 rounded-lg transition-colors"
                 >
                   전액
                 </button>
@@ -189,7 +200,7 @@ export function ConfirmStep({
             <span className="text-sm font-medium text-gray-700">
               최종 결제 금액
             </span>
-            <span className="text-2xl font-bold text-[#fab803]">
+            <span className="text-2xl font-bold text-[#1a2867]">
               {formatAmount(finalAmount)}원
             </span>
           </div>
@@ -323,6 +334,71 @@ function PayorSummaryCard({ payor }: PayorSummaryCardProps) {
           </p>
           <p className="text-xs text-gray-500">{payor.email}</p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== 분할 결제자 요약 카드 (Split Payor Summary Card) ====================
+
+interface SplitPayorSummaryCardProps {
+  splitPayor: SplitPayor;
+}
+
+function SplitPayorSummaryCard({ splitPayor }: SplitPayorSummaryCardProps) {
+  const { payor, amount, methods } = splitPayor;
+  const payorLabel = payor.type === 'company'
+    ? payor.company || payor.name
+    : payor.name;
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+      {/* 결제자 헤더 (Payor Header) */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 rounded-lg bg-white border border-gray-200">
+            {payor.type === 'company' ? (
+              <Building2 className="h-4 w-4 text-gray-600" />
+            ) : (
+              <User className="h-4 w-4 text-gray-600" />
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-900">
+              {payorLabel || '결제자'}
+            </p>
+            <p className="text-xs text-gray-500">{payor.email}</p>
+          </div>
+        </div>
+        <span className="text-sm font-semibold text-gray-900">
+          {formatAmount(amount)}원
+        </span>
+      </div>
+
+      {/* 결제 수단 목록 (Payment Methods List) */}
+      <div className="px-4 py-3 space-y-2">
+        {methods.length > 0 ? (
+          methods.map((method) => (
+            <div
+              key={method.id}
+              className="flex items-center justify-between text-sm"
+            >
+              <div className="flex items-center gap-2">
+                <MethodBadge type={method.type} />
+                {method.proof && method.proof.type !== 'none' && (
+                  <ProofTypeBadge type={method.proof.type} />
+                )}
+              </div>
+              <span className="text-gray-600">
+                {formatAmount(method.amount)}원
+              </span>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-gray-400 text-center py-2">
+            결제 수단 미설정
+          </p>
+        )}
       </div>
     </div>
   );

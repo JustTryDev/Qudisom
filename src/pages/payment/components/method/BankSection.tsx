@@ -97,7 +97,7 @@ export function BankSection({
         {/* 입금 금액 (Deposit Amount) */}
         <div className="flex items-center justify-between bg-[#fab803]/10 rounded-lg px-4 py-3">
           <span className="text-sm font-medium text-gray-700">입금 금액</span>
-          <span className="text-lg font-bold text-[#fab803]">
+          <span className="text-lg font-bold text-[#1a2867]">
             {amount.toLocaleString()}원
           </span>
         </div>

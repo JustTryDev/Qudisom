@@ -175,7 +175,7 @@ export function AmountChangeModal({
                 <Icon
                   className={cn(
                     'h-4 w-4',
-                    recommended ? 'text-[#fab803]' : 'text-gray-500'
+                    recommended ? 'text-[#1a2867]' : 'text-gray-500'
                   )}
                 />
               </div>

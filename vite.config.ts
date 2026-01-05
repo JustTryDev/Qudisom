@@ -5,6 +5,9 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // GitHub Pages 배포를 위한 base URL 설정 (Base URL for GitHub Pages deployment)
+  // 저장소 이름이 /Qudisom이므로 이 경로를 base로 설정
+  base: '/Qudisom/',
   plugins: [
     react(),
     tailwindcss()

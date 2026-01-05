@@ -131,56 +131,56 @@ export function TaxInvoiceForm({
 
   return (
     <div className={cn('space-y-6', className)}>
-      {/* 수령인 선택 (Recipient Selection) */}
-      <RecipientModeSelector
-        value={recipientMode}
-        onChange={handleRecipientModeChange}
-        payorName={payorName}
-        disabled={disabled}
-      />
+      {/* 사업자 등록증 첨부 안내 (Business Registration Notice) */}
+      <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
+        <p className="text-sm font-medium text-blue-900">
+          세금계산서 발행을 위해 사업자 등록증을 첨부해주세요
+        </p>
+        <p className="text-xs text-blue-700 mt-1">
+          OCR로 자동 인식하거나 직접 입력할 수 있습니다
+        </p>
+      </div>
 
-      {/* 다른 수령인일 경우 사업자 정보 입력 (Business Info for Different Recipient) */}
-      {recipientMode === 'different' && (
-        <div className="space-y-4">
-          {/* OCR 결과 배너 (OCR Result Banner) */}
-          {ocrResult?.success && inputMode === 'manual' && (
-            <OcrResultBanner
-              confidence={ocrResult.confidence}
-              onRescan={handleRescan}
-            />
-          )}
+      {/* 사업자 정보 입력 (Business Info Input) - 무조건 표시 */}
+      <div className="space-y-4">
+        {/* OCR 결과 배너 (OCR Result Banner) */}
+        {ocrResult?.success && inputMode === 'manual' && (
+          <OcrResultBanner
+            confidence={ocrResult.confidence}
+            onRescan={handleRescan}
+          />
+        )}
 
-          {/* 입력 방식 선택 (Input Mode Selection) */}
-          {inputMode === 'select' && (
-            <OcrUploader
-              onOcrComplete={handleOcrComplete}
-              onManualInput={handleManualInput}
-              disabled={disabled}
-            />
-          )}
+        {/* 입력 방식 선택 (Input Mode Selection) */}
+        {inputMode === 'select' && (
+          <OcrUploader
+            onOcrComplete={handleOcrComplete}
+            onManualInput={handleManualInput}
+            disabled={disabled}
+          />
+        )}
 
-          {/* OCR 결과 검토 (OCR Result Review) */}
-          {inputMode === 'review' && ocrResult && (
-            <OcrResultReview
-              ocrResult={ocrResult}
-              currentValue={businessInfo}
-              onAccept={handleOcrAccept}
-              onReject={handleOcrReject}
-              onFieldEdit={handleFieldEdit}
-            />
-          )}
+        {/* OCR 결과 검토 (OCR Result Review) */}
+        {inputMode === 'review' && ocrResult && (
+          <OcrResultReview
+            ocrResult={ocrResult}
+            currentValue={businessInfo}
+            onAccept={handleOcrAccept}
+            onReject={handleOcrReject}
+            onFieldEdit={handleFieldEdit}
+          />
+        )}
 
-          {/* 사업자 정보 폼 (Business Info Form) */}
-          {inputMode === 'manual' && (
-            <BusinessInfoForm
-              value={businessInfo}
-              onChange={handleBusinessInfoChange}
-              disabled={disabled}
-              showAllFields={true}
-            />
-          )}
-        </div>
-      )}
+        {/* 사업자 정보 폼 (Business Info Form) */}
+        {inputMode === 'manual' && (
+          <BusinessInfoForm
+            value={businessInfo}
+            onChange={handleBusinessInfoChange}
+            disabled={disabled}
+            showAllFields={true}
+          />
+        )}
+      </div>
 
       {/* 발행 희망 날짜 (Preferred Issue Date) */}
       <IssueDatePicker

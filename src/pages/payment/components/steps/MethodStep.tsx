@@ -1,11 +1,16 @@
 // Step 3: 결제 수단 컴포넌트 (Payment Method Step Component)
+// 분할 결제자 모드 지원: 각 결제자별로 독립적인 결제 수단 선택 가능
 
 import React, { useCallback, useMemo } from 'react';
+import { User, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type {
   PaymentSchedule,
   PaymentMethod,
   PaymentMethodType,
+  PaymentMethodDetails,
+  PayorMode,
+  SplitPayor,
   ProofDocument,
   KeyinData,
   BankData,
@@ -33,6 +38,9 @@ import { StepCard, StepCardActions, StepSummaryGrid } from './StepCard';
 
 interface MethodStepProps {
   schedules: PaymentSchedule[];
+  // 분할 결제자 지원 (Split Payor Support)
+  payorMode?: PayorMode;
+  splitPayors?: SplitPayor[];
   onAddMethod: (scheduleId: string, method: PaymentMethod) => void;
   onUpdateMethod: (
     scheduleId: string,
@@ -40,6 +48,14 @@ interface MethodStepProps {
     data: Partial<PaymentMethod>
   ) => void;
   onRemoveMethod: (scheduleId: string, methodId: string) => void;
+  // 분할 결제자 결제 수단 관리 (Split Payor Method Management)
+  onAddSplitPayorMethod?: (splitPayorId: string, method: PaymentMethod) => void;
+  onUpdateSplitPayorMethod?: (
+    splitPayorId: string,
+    methodId: string,
+    data: Partial<PaymentMethod>
+  ) => void;
+  onRemoveSplitPayorMethod?: (splitPayorId: string, methodId: string) => void;
   onSetProof: (
     scheduleId: string,
     methodId: string,
@@ -50,28 +66,43 @@ interface MethodStepProps {
   onEdit?: () => void;
   isActive: boolean;
   isCompleted: boolean;
+  testMode?: boolean; // 테스트 모드: 검증 스킵 가능 (Test mode: can skip validation)
   className?: string;
 }
 
 export function MethodStep({
   schedules,
+  payorMode = 'single',
+  splitPayors = [],
   onAddMethod,
   onUpdateMethod,
   onRemoveMethod,
+  onAddSplitPayorMethod,
+  onUpdateSplitPayorMethod,
+  onRemoveSplitPayorMethod,
   onSetProof,
   onComplete,
   onPrev,
   onEdit,
   isActive,
   isCompleted,
+  testMode = false,
   className,
 }: MethodStepProps) {
+  // 분할 결제자 모드 여부 (Is split payor mode)
+  const isSplitPayorMode = payorMode === 'split-amount' && splitPayors.length > 0;
+
   const [activeScheduleId, setActiveScheduleId] = React.useState<string>(
     schedules[0]?.id || ''
+  );
+  const [activeSplitPayorId, setActiveSplitPayorId] = React.useState<string>(
+    splitPayors[0]?.id || ''
   );
 
   // 현재 활성 일정 (Current active schedule)
   const activeSchedule = schedules.find((s) => s.id === activeScheduleId);
+  // 현재 활성 분할 결제자 (Current active split payor)
+  const activeSplitPayor = splitPayors.find((sp) => sp.id === activeSplitPayorId);
 
   // 일정별 금액 검증 (Per-schedule amount validation)
   const scheduleValidations = useMemo(() => {
@@ -83,8 +114,20 @@ export function MethodStep({
     });
   }, [schedules]);
 
+  // 분할 결제자별 금액 검증 (Per-split-payor amount validation)
+  const splitPayorValidations = useMemo(() => {
+    return splitPayors.map((sp) => {
+      const methodTotal = sp.methods.reduce((sum, m) => sum + m.amount, 0);
+      const isValid = methodTotal === sp.amount;
+      const diff = methodTotal - sp.amount;
+      return { splitPayorId: sp.id, methodTotal, isValid, diff };
+    });
+  }, [splitPayors]);
+
   // 전체 검증 (Overall validation)
-  const canComplete = scheduleValidations.every((v) => v.isValid);
+  const canComplete = isSplitPayorMode
+    ? splitPayorValidations.every((v) => v.isValid)
+    : scheduleValidations.every((v) => v.isValid);
 
   // 메서드 추가 핸들러 (Add method handler)
   const handleAddMethod = useCallback(
@@ -93,6 +136,16 @@ export function MethodStep({
       onAddMethod(scheduleId, newMethod);
     },
     [onAddMethod]
+  );
+
+  // 분할 결제자 메서드 추가 핸들러 (Add split payor method handler)
+  const handleAddSplitPayorMethod = useCallback(
+    (splitPayorId: string) => {
+      if (!onAddSplitPayorMethod) return;
+      const newMethod = createDefaultPaymentMethod(`method-${Date.now()}`);
+      onAddSplitPayorMethod(splitPayorId, newMethod);
+    },
+    [onAddSplitPayorMethod]
   );
 
   // 메서드 상세 업데이트 핸들러 (Update method details handler)
@@ -164,64 +217,131 @@ export function MethodStep({
       className={className}
     >
       <div className="space-y-6">
-        {/* 일정 탭 (Schedule Tabs) - 다중 일정일 때만 */}
-        {schedules.length > 1 && (
-          <div className="flex border-b border-gray-200 overflow-x-auto">
-            {schedules.map((schedule) => {
-              const validation = scheduleValidations.find(
-                (v) => v.scheduleId === schedule.id
-              );
-              return (
-                <button
-                  key={schedule.id}
-                  onClick={() => setActiveScheduleId(schedule.id)}
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors',
-                    activeScheduleId === schedule.id
-                      ? 'border-[#fab803] text-[#fab803]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  )}
-                >
-                  {schedule.label}
-                  {validation && !validation.isValid && (
-                    <span className="w-2 h-2 rounded-full bg-red-500" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* 활성 일정 결제 수단 (Active Schedule Methods) */}
-        {activeSchedule && (
-          <ScheduleMethodsSection
-            schedule={activeSchedule}
-            validation={scheduleValidations.find(
-              (v) => v.scheduleId === activeSchedule.id
+        {/* 분할 결제자 모드 (Split Payor Mode) */}
+        {isSplitPayorMode ? (
+          <>
+            {/* 분할 결제자 탭 (Split Payor Tabs) */}
+            {splitPayors.length > 1 && (
+              <div className="flex border-b border-gray-200 overflow-x-auto">
+                {splitPayors.map((sp) => {
+                  const validation = splitPayorValidations.find(
+                    (v) => v.splitPayorId === sp.id
+                  );
+                  const payorLabel = sp.payor.type === 'company'
+                    ? sp.payor.company || sp.payor.name
+                    : sp.payor.name;
+                  return (
+                    <button
+                      key={sp.id}
+                      onClick={() => setActiveSplitPayorId(sp.id)}
+                      className={cn(
+                        'flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors',
+                        activeSplitPayorId === sp.id
+                          ? 'border-[#1a2867] text-[#1a2867]'
+                          : 'border-transparent text-gray-500 hover:text-gray-700'
+                      )}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {sp.payor.type === 'company' ? (
+                          <Building2 className="h-3.5 w-3.5" />
+                        ) : (
+                          <User className="h-3.5 w-3.5" />
+                        )}
+                        {payorLabel || '결제자'}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        ({formatAmount(sp.amount)}원)
+                      </span>
+                      {validation && !validation.isValid && (
+                        <span className="w-2 h-2 rounded-full bg-red-500" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             )}
-            onAddMethod={() => handleAddMethod(activeSchedule.id)}
-            onUpdateMethod={(methodId, data) =>
-              onUpdateMethod(activeSchedule.id, methodId, data)
-            }
-            onRemoveMethod={(methodId) =>
-              onRemoveMethod(activeSchedule.id, methodId)
-            }
-            onUpdateDetails={(methodId, details) =>
-              handleUpdateMethodDetails(activeSchedule.id, methodId, details)
-            }
-            onProofChange={(methodId, proof) =>
-              handleProofChange(activeSchedule.id, methodId, proof)
-            }
-          />
+
+            {/* 활성 분할 결제자 결제 수단 (Active Split Payor Methods) */}
+            {activeSplitPayor && (
+              <SplitPayorMethodsSection
+                splitPayor={activeSplitPayor}
+                validation={splitPayorValidations.find(
+                  (v) => v.splitPayorId === activeSplitPayor.id
+                )}
+                onAddMethod={() => handleAddSplitPayorMethod(activeSplitPayor.id)}
+                onUpdateMethod={(methodId, data) =>
+                  onUpdateSplitPayorMethod?.(activeSplitPayor.id, methodId, data)
+                }
+                onRemoveMethod={(methodId) =>
+                  onRemoveSplitPayorMethod?.(activeSplitPayor.id, methodId)
+                }
+              />
+            )}
+          </>
+        ) : (
+          <>
+            {/* 일정 탭 (Schedule Tabs) - 다중 일정일 때만 */}
+            {schedules.length > 1 && (
+              <div className="flex border-b border-gray-200 overflow-x-auto">
+                {schedules.map((schedule) => {
+                  const validation = scheduleValidations.find(
+                    (v) => v.scheduleId === schedule.id
+                  );
+                  return (
+                    <button
+                      key={schedule.id}
+                      onClick={() => setActiveScheduleId(schedule.id)}
+                      className={cn(
+                        'flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors',
+                        activeScheduleId === schedule.id
+                          ? 'border-[#1a2867] text-[#1a2867]'
+                          : 'border-transparent text-gray-500 hover:text-gray-700'
+                      )}
+                    >
+                      {schedule.label}
+                      {validation && !validation.isValid && (
+                        <span className="w-2 h-2 rounded-full bg-red-500" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* 활성 일정 결제 수단 (Active Schedule Methods) */}
+            {activeSchedule && (
+              <ScheduleMethodsSection
+                schedule={activeSchedule}
+                validation={scheduleValidations.find(
+                  (v) => v.scheduleId === activeSchedule.id
+                )}
+                onAddMethod={() => handleAddMethod(activeSchedule.id)}
+                onUpdateMethod={(methodId, data) =>
+                  onUpdateMethod(activeSchedule.id, methodId, data)
+                }
+                onRemoveMethod={(methodId) =>
+                  onRemoveMethod(activeSchedule.id, methodId)
+                }
+                onUpdateDetails={(methodId, details) =>
+                  handleUpdateMethodDetails(activeSchedule.id, methodId, details)
+                }
+                onProofChange={(methodId, proof) =>
+                  handleProofChange(activeSchedule.id, methodId, proof)
+                }
+              />
+            )}
+          </>
         )}
 
         {/* 액션 버튼 (Action Buttons) */}
         <StepCardActions
           onPrev={onPrev}
           onNext={onComplete}
+          onSkip={onComplete}
           prevLabel="이전"
           nextLabel="다음 단계"
           nextDisabled={!canComplete}
+          testMode={testMode}
         />
       </div>
     </StepCard>
@@ -411,6 +531,219 @@ function MethodWithDetails({
             <CashReceiptForm
               value={method.proof}
               onChange={onProofChange}
+            />
+          )}
+
+          {/* 검증 경고 (Validation Alert) */}
+          <ProofValidationAlert method={method} proof={method.proof} />
+        </div>
+      )}
+    </MethodCard>
+  );
+}
+
+// ==================== 분할 결제자별 결제 수단 섹션 (Split Payor Methods Section) ====================
+
+interface SplitPayorMethodsSectionProps {
+  splitPayor: SplitPayor;
+  validation?: { methodTotal: number; isValid: boolean; diff: number };
+  onAddMethod: () => void;
+  onUpdateMethod: (methodId: string, data: Partial<PaymentMethod>) => void;
+  onRemoveMethod: (methodId: string) => void;
+}
+
+function SplitPayorMethodsSection({
+  splitPayor,
+  validation,
+  onAddMethod,
+  onUpdateMethod,
+  onRemoveMethod,
+}: SplitPayorMethodsSectionProps) {
+  // 남은 금액 계산 (Calculate remaining amount)
+  const remainingAmount = splitPayor.amount - (validation?.methodTotal || 0);
+  const payorLabel = splitPayor.payor.type === 'company'
+    ? splitPayor.payor.company || splitPayor.payor.name
+    : splitPayor.payor.name;
+
+  return (
+    <div className="space-y-4">
+      {/* 결제자 정보 표시 (Payor Info Display) */}
+      <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {splitPayor.payor.type === 'company' ? (
+              <Building2 className="h-4 w-4 text-gray-500" />
+            ) : (
+              <User className="h-4 w-4 text-gray-500" />
+            )}
+            <span className="text-sm font-medium text-gray-700">
+              {payorLabel || '결제자'} 결제 금액
+            </span>
+          </div>
+          <span className="text-lg font-bold text-gray-900">
+            {formatAmount(splitPayor.amount)}원
+          </span>
+        </div>
+      </div>
+
+      {/* 결제 수단 목록 (Payment Methods List) */}
+      <div className="space-y-4">
+        {splitPayor.methods.map((method, index) => (
+          <SplitPayorMethodCard
+            key={method.id}
+            method={method}
+            index={index}
+            totalAmount={splitPayor.amount}
+            remainingAmount={remainingAmount}
+            onUpdate={(data) => onUpdateMethod(method.id, data)}
+            onRemove={() => onRemoveMethod(method.id)}
+            canRemove={splitPayor.methods.length > 1}
+          />
+        ))}
+
+        {/* 결제 수단 추가 버튼 (Add Method Button) */}
+        <AddMethodButton onClick={onAddMethod} />
+      </div>
+
+      {/* 금액 비교 (Amount Comparison) */}
+      {validation && (
+        <AmountComparison
+          label="결제 수단 합계"
+          current={validation.methodTotal}
+          target={splitPayor.amount}
+        />
+      )}
+    </div>
+  );
+}
+
+// ==================== 분할 결제자 결제 수단 카드 (Split Payor Method Card) ====================
+
+interface SplitPayorMethodCardProps {
+  method: PaymentMethod;
+  index: number;
+  totalAmount: number;
+  remainingAmount: number;
+  onUpdate: (data: Partial<PaymentMethod>) => void;
+  onRemove: () => void;
+  canRemove: boolean;
+}
+
+function SplitPayorMethodCard({
+  method,
+  index,
+  totalAmount,
+  remainingAmount,
+  onUpdate,
+  onRemove,
+  canRemove,
+}: SplitPayorMethodCardProps) {
+  const methodInfo = PAYMENT_METHOD_MAP[method.type];
+  const requiresProof = methodInfo?.requiresProof && !method.autoReceipt;
+
+  // 수단별 상세 컴포넌트 렌더링 (Render method-specific component)
+  const renderMethodDetails = () => {
+    const handleDetailsChange = (details: PaymentMethodDetails) => {
+      onUpdate({ details });
+    };
+
+    switch (method.type) {
+      case 'toss':
+        return <TossSection amount={method.amount} />;
+      case 'keyin':
+        return (
+          <KeyinSection
+            value={method.details as KeyinData | null}
+            onChange={handleDetailsChange}
+            amount={method.amount}
+          />
+        );
+      case 'bank':
+        return (
+          <BankSection
+            value={method.details as BankData | null}
+            onChange={handleDetailsChange}
+            amount={method.amount}
+          />
+        );
+      case 'narabill':
+        return (
+          <NarabillSection
+            value={method.details as FileUploadData | null}
+            onChange={handleDetailsChange}
+            amount={method.amount}
+          />
+        );
+      case 'contract':
+        return (
+          <ContractSection
+            value={method.details as FileUploadData | null}
+            onChange={handleDetailsChange}
+            amount={method.amount}
+          />
+        );
+      case 'other':
+        return (
+          <OtherSection
+            value={method.details as OtherData | null}
+            onChange={handleDetailsChange}
+            amount={method.amount}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  // 증빙 변경 핸들러 (Proof change handler)
+  const handleProofChange = (proof: Partial<ProofDocument>) => {
+    const newProof: ProofDocument = {
+      id: method.proof?.id || `proof-${Date.now()}`,
+      type: proof.type || 'none',
+      recipientMode: proof.recipientMode || 'same-as-payor',
+      preferredIssueDate: proof.preferredIssueDate || false,
+      validations: [],
+      ...proof,
+    };
+    onUpdate({ proof: newProof });
+  };
+
+  return (
+    <MethodCard
+      method={method}
+      index={index}
+      totalAmount={totalAmount}
+      remainingAmount={remainingAmount}
+      onUpdate={onUpdate}
+      onRemove={onRemove}
+      canRemove={canRemove}
+    >
+      {/* 수단별 상세 (Method Details) */}
+      <div className="pt-4 border-t border-gray-100">{renderMethodDetails()}</div>
+
+      {/* 증빙 서류 (Proof Document) - 필요 시 */}
+      {requiresProof && (
+        <div className="pt-4 border-t border-gray-100 space-y-4">
+          <ProofSelector
+            value={method.proof?.type || 'none'}
+            onChange={(type) => handleProofChange({ type })}
+            amount={method.amount}
+            showLaterOption
+          />
+
+          {/* 세금계산서 폼 (Tax Invoice Form) */}
+          {method.proof?.type === 'tax-invoice' && (
+            <TaxInvoiceForm
+              value={method.proof}
+              onChange={handleProofChange}
+            />
+          )}
+
+          {/* 현금영수증 폼 (Cash Receipt Form) */}
+          {method.proof?.type === 'cash-receipt' && (
+            <CashReceiptForm
+              value={method.proof}
+              onChange={handleProofChange}
             />
           )}
 

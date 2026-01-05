@@ -73,7 +73,7 @@ export function MethodSelector({
               <Icon
                 className={cn(
                   'h-5 w-5',
-                  isSelected ? 'text-[#fab803]' : 'text-gray-500'
+                  isSelected ? 'text-[#1a2867]' : 'text-gray-500'
                 )}
               />
             </div>

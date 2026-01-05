@@ -225,23 +225,32 @@ export const EMPTY_BUSINESS_INFO_FIELDS: BusinessInfoFields = {
 };
 
 export const EMPTY_PAYOR_INFO: PayorInfo = {
-  type: 'personal',
+  source: 'other', // 기본값: 다른 사람 (Default: other person)
+  type: 'individual',
   name: '',
   company: '',
   phone: '',
   email: '',
 };
 
+// 오늘 날짜를 YYYY-MM-DD 형식으로 반환 (Get today's date in YYYY-MM-DD format)
+const getTodayDateString = (): string => {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+};
+
 export const createDefaultSchedule = (
   id: string,
   label: string,
   amount: number = 0,
-  timing: PaymentTiming = 'pre-order'
+  timing: PaymentTiming = 'pre-order',
+  dueDate?: string
 ): PaymentSchedule => ({
   id,
   label,
   amount,
   timing,
+  dueDate: dueDate || getTodayDateString(), // 기본값: 오늘 날짜 (Default: today)
   methods: [],
 });
 
@@ -269,6 +278,7 @@ export const INITIAL_UNIFIED_PAYMENT: UnifiedPayment = {
   schedules: [createDefaultSchedule('schedule-1', '1차 결제')],
   payorMode: 'single',
   singlePayor: { ...EMPTY_PAYOR_INFO },
+  splitPayors: [], // 금액 분할 결제자 목록 (Split amount payors list)
   savedPayors: [],
   useDeposit: false,
   depositAmount: 0,

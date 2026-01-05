@@ -2,13 +2,30 @@
 
 // ==================== 메인 타입 (Main Types) ====================
 
+// 결제 주체 모드 (Payor Mode Types)
+// - 'single': 한 명이 전액 결제 (Single payor pays all)
+// - 'per-schedule': 일정별로 다른 결제자 (Different payor per schedule)
+// - 'split-amount': 금액을 나눠서 여러 명이 결제 (Split amount among multiple payors)
+export type PayorMode = 'single' | 'per-schedule' | 'split-amount';
+
+// 금액 분할 결제자 (Split Amount Payor)
+// 100% 결제에서도 여러 명이 금액을 나눠서 결제할 때 사용
+// 각 결제자는 독립적인 결제 수단을 선택할 수 있음
+export interface SplitPayor {
+  id: string;
+  payor: PayorInfo;
+  amount: number; // 이 결제자가 결제할 금액 (Amount this payor will pay)
+  methods: PaymentMethod[]; // 이 결제자의 결제 수단 (This payor's payment methods)
+}
+
 export interface UnifiedPayment {
   // Step 1: 결제 일정 (Payment Schedule)
   schedules: PaymentSchedule[];
 
   // Step 2: 결제 주체 (Payor Info)
-  payorMode: 'single' | 'per-schedule';
+  payorMode: PayorMode;
   singlePayor?: PayorInfo;
+  splitPayors: SplitPayor[]; // 금액 분할 결제자 목록 (Split amount payors list)
   savedPayors: SavedPayor[];
 
   // Step 5: 최종 확인 (Final Confirmation)
@@ -26,6 +43,7 @@ export interface PaymentSchedule {
   label: string; // "1차 결제", "선금", "잔금" 등
   amount: number;
   timing: PaymentTiming;
+  dueDate: string; // 결제 예정 날짜 (Payment due date) - "2024-01-15" 형식
 
   // 결제 주체 (Payor - when payorMode is 'per-schedule')
   payor?: PayorInfo;
@@ -38,12 +56,25 @@ export type PaymentTiming = 'pre-order' | 'post-order' | 'pre-ship' | 'post-ship
 
 // ==================== 결제 주체 (Payor) ====================
 
+// 결제 주체 출처 (Payor Source)
+// - 'self': 본인이 직접 결제 (Customer pays directly - auto-fill from customer info)
+// - 'other': 다른 사람/회사가 결제 (Different person/company pays)
+export type PayorSource = 'self' | 'other';
+
+// 결제자 유형 (Payor Type)
+// - 'individual': 개인 (Individual person)
+// - 'company': 회사/기관 (Company/Organization)
+export type PayorType = 'individual' | 'company';
+
 export interface PayorInfo {
-  type: 'personal' | 'company';
+  source: PayorSource; // 본인 or 다른 사람 (Self or Other)
+  type: PayorType; // 개인 or 회사 (Individual or Company)
   name: string;
-  company?: string;
+  company?: string; // 회사일 때만 필수 (Required only for company)
   phone: string;
   email: string;
+  // businessInfo는 MethodStep에서 결제 수단 선택 시에만 요청
+  // (businessInfo is only requested in MethodStep when selecting payment method)
   businessInfo?: BusinessInfo;
 }
 
@@ -98,6 +129,10 @@ export interface PaymentMethod {
   // 증빙 정보 (Proof Document)
   autoReceipt: boolean; // 토스/키인은 true
   proof?: ProofDocument;
+
+  // 사업자 정보 (Business Info) - 무통장/나라빌/수의계약 등 필요 시
+  // PayorStep에서 제거되고 MethodStep에서 필요한 경우에만 수집
+  businessInfo?: BusinessInfo;
 }
 
 export type PaymentMethodDetails =
@@ -253,9 +288,17 @@ export type PaymentAction =
   | { type: 'ADD_SCHEDULE'; payload: PaymentSchedule }
   | { type: 'UPDATE_SCHEDULE'; payload: { id: string; data: Partial<PaymentSchedule> } }
   | { type: 'REMOVE_SCHEDULE'; payload: string }
-  | { type: 'SET_PAYOR_MODE'; payload: 'single' | 'per-schedule' }
+  | { type: 'SET_PAYOR_MODE'; payload: PayorMode }
   | { type: 'SET_SINGLE_PAYOR'; payload: PayorInfo }
   | { type: 'SET_SCHEDULE_PAYOR'; payload: { scheduleId: string; payor: PayorInfo } }
+  // 분할 결제자 액션 (Split Payor Actions)
+  | { type: 'ADD_SPLIT_PAYOR'; payload: SplitPayor }
+  | { type: 'UPDATE_SPLIT_PAYOR'; payload: { id: string; data: Partial<SplitPayor> } }
+  | { type: 'REMOVE_SPLIT_PAYOR'; payload: string }
+  // 분할 결제자 결제 수단 액션 (Split Payor Payment Method Actions)
+  | { type: 'ADD_SPLIT_PAYOR_METHOD'; payload: { splitPayorId: string; method: PaymentMethod } }
+  | { type: 'UPDATE_SPLIT_PAYOR_METHOD'; payload: { splitPayorId: string; methodId: string; data: Partial<PaymentMethod> } }
+  | { type: 'REMOVE_SPLIT_PAYOR_METHOD'; payload: { splitPayorId: string; methodId: string } }
   | { type: 'ADD_PAYMENT_METHOD'; payload: { scheduleId: string; method: PaymentMethod } }
   | { type: 'UPDATE_PAYMENT_METHOD'; payload: { scheduleId: string; methodId: string; data: Partial<PaymentMethod> } }
   | { type: 'REMOVE_PAYMENT_METHOD'; payload: { scheduleId: string; methodId: string } }
