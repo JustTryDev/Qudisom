@@ -2,6 +2,7 @@
 // OCR 자동 인식 + 수동 입력을 하나로 묶은 재사용 가능한 컴포넌트
 
 import React, { useState, useCallback } from 'react';
+import { CheckCircle, Edit3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BusinessInfoFields, OcrResult } from '../../types';
 import { EMPTY_BUSINESS_INFO_FIELDS } from '../../utils/constants';
@@ -31,6 +32,7 @@ export function BusinessInfoSection({
   const [inputMode, setInputMode] = useState<InputMode>('select');
   const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfoFields>(value);
+  const [isCollapsed, setIsCollapsed] = useState(false); // 🆕 접힌/펼친 상태
 
   // OCR 완료 핸들러 (OCR Complete Handler)
   const handleOcrComplete = useCallback(
@@ -55,6 +57,7 @@ export function BusinessInfoSection({
       setBusinessInfo(info);
       onChange(info);
       setInputMode('manual');
+      setIsCollapsed(true); // 🆕 자동으로 접기
     },
     [onChange]
   );
@@ -99,14 +102,6 @@ export function BusinessInfoSection({
 
       {/* 입력 영역 (Input Area) */}
       <div className="space-y-4">
-        {/* OCR 결과 배너 (OCR Result Banner) */}
-        {ocrResult?.success && inputMode === 'manual' && (
-          <OcrResultBanner
-            confidence={ocrResult.confidence}
-            onRescan={handleRescan}
-          />
-        )}
-
         {/* 입력 방식 선택 (Input Mode Selection) */}
         {inputMode === 'select' && (
           <OcrUploader
@@ -129,12 +124,57 @@ export function BusinessInfoSection({
 
         {/* 사업자 정보 폼 (Business Info Form) */}
         {inputMode === 'manual' && (
-          <BusinessInfoForm
-            value={businessInfo}
-            onChange={handleBusinessInfoChange}
-            disabled={disabled}
-            showAllFields={true}
-          />
+          <>
+            {isCollapsed ? (
+              /* 접힌 상태: 요약 카드 (Collapsed State: Summary Card) */
+              <div className="rounded-xl bg-green-50 border border-green-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="text-sm font-semibold text-green-900">
+                        사업자 정보 입력 완료
+                      </p>
+                      <p className="text-xs text-green-700 mt-0.5">
+                        {businessInfo.companyName} ({businessInfo.businessNumber})
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsCollapsed(false)}
+                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors"
+                    disabled={disabled}
+                  >
+                    수정
+                    <Edit3 className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* 펼친 상태: 전체 폼 (Expanded State: Full Form) */
+              <div className="space-y-3">
+                {ocrResult?.success && (
+                  <OcrResultBanner
+                    confidence={ocrResult.confidence}
+                    onRescan={handleRescan}
+                  />
+                )}
+                <BusinessInfoForm
+                  value={businessInfo}
+                  onChange={handleBusinessInfoChange}
+                  disabled={disabled}
+                  showAllFields={true}
+                />
+                <button
+                  onClick={() => setIsCollapsed(true)}
+                  className="text-sm text-gray-600 hover:text-gray-800 underline transition-colors"
+                  disabled={disabled}
+                >
+                  접기
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -377,6 +377,20 @@ function ScheduleMethodsSection({
   // 남은 금액 계산 (Calculate remaining amount)
   const remainingAmount = schedule.amount - (validation?.methodTotal || 0);
 
+  // 🆕 첫번째 결제 수단이 없으면 자동 추가 (토스페이먼츠 기본값)
+  React.useEffect(() => {
+    if (schedule.methods.length === 0) {
+      onAddMethod();
+    }
+  }, []);
+
+  // 🆕 첫번째 탭 자동 선택
+  React.useEffect(() => {
+    if (schedule.methods.length > 0 && !activeMethodId) {
+      setActiveMethodId(schedule.methods[0].id);
+    }
+  }, [schedule.methods, activeMethodId]);
+
   // 활성 탭이 삭제된 경우 첫 번째 탭으로 변경 (Switch to first tab if active tab is deleted)
   React.useEffect(() => {
     if (!schedule.methods.find((m) => m.id === activeMethodId)) {
@@ -411,10 +425,10 @@ function ScheduleMethodsSection({
               key={method.id}
               onClick={() => setActiveMethodId(method.id)}
               className={cn(
-                'flex items-center gap-2 px-4 py-2 border-b-2 transition-colors relative group',
+                'flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors relative group',
                 activeMethodId === method.id
-                  ? 'border-[#1a2867] text-[#1a2867] font-medium'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'bg-[#1a2867] text-white font-semibold' // 🎨 네이비 배경 + 흰색 폰트
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               )}
             >
               <span className="text-sm">
@@ -426,7 +440,12 @@ function ScheduleMethodsSection({
                     e.stopPropagation();
                     onRemoveMethod(method.id);
                   }}
-                  className="p-0.5 rounded hover:bg-gray-200 transition-colors"
+                  className={cn(
+                    'p-0.5 rounded transition-colors',
+                    activeMethodId === method.id
+                      ? 'hover:bg-[#2a3a7f]' // 네이비 탭일 때 더 진한 네이비 호버
+                      : 'hover:bg-gray-300'
+                  )}
                   title="결제 수단 삭제"
                 >
                   <X className="h-3 w-3" />
@@ -567,38 +586,92 @@ function MethodWithDetails({
       onRemove={onRemove}
       canRemove={canRemove}
     >
-      {/* 수단별 상세 (Method Details) */}
-      <div className="pt-4 border-t border-gray-100">{renderMethodDetails()}</div>
+      {/* 🎨 나라빌/수의계약: 증빙 서류를 위로, 서류 업로드를 아래로 */}
+      {(method.type === 'narabill' || method.type === 'contract') ? (
+        <>
+          {/* 증빙 서류 먼저 (Proof Document First) */}
+          {requiresProof && method.type !== 'other' && (
+            <div className="pt-4 border-t border-gray-100 space-y-4">
+              <ProofSelector
+                value={method.proof?.type || 'none'}
+                onChange={(type) => onProofChange({ type })}
+                amount={method.amount}
+                showLaterOption
+              />
 
-      {/* 증빙 서류 (Proof Document) - 필요 시, 기타 결제 제외 */}
-      {requiresProof && method.type !== 'other' && (
-        <div className="pt-4 border-t border-gray-100 space-y-4">
-          <ProofSelector
-            value={method.proof?.type || 'none'}
-            onChange={(type) => onProofChange({ type })}
-            amount={method.amount}
-            showLaterOption
-          />
+              {/* 세금계산서 폼 (Tax Invoice Form) */}
+              {method.proof?.type === 'tax-invoice' && (
+                <TaxInvoiceForm
+                  value={method.proof}
+                  onChange={onProofChange}
+                  existingBusinessInfo={
+                    (method.type === 'narabill' || method.type === 'contract') &&
+                    method.details
+                      ? (method.details as FileUploadData).businessInfo
+                      : undefined
+                  }
+                />
+              )}
 
-          {/* 세금계산서 폼 (Tax Invoice Form) */}
-          {method.proof?.type === 'tax-invoice' && (
-            <TaxInvoiceForm
-              value={method.proof}
-              onChange={onProofChange}
-            />
+              {/* 현금영수증 폼 (Cash Receipt Form) */}
+              {method.proof?.type === 'cash-receipt' && (
+                <CashReceiptForm
+                  value={method.proof}
+                  onChange={onProofChange}
+                />
+              )}
+
+              {/* 검증 경고 (Validation Alert) */}
+              <ProofValidationAlert method={method} proof={method.proof} />
+            </div>
           )}
 
-          {/* 현금영수증 폼 (Cash Receipt Form) */}
-          {method.proof?.type === 'cash-receipt' && (
-            <CashReceiptForm
-              value={method.proof}
-              onChange={onProofChange}
-            />
-          )}
+          {/* 수단별 상세 나중에 (Method Details Second) */}
+          <div className="pt-4 border-t border-gray-100">{renderMethodDetails()}</div>
+        </>
+      ) : (
+        <>
+          {/* 다른 결제 수단: 기존 순서 유지 (Other Methods: Keep Original Order) */}
+          {/* 수단별 상세 (Method Details) */}
+          <div className="pt-4 border-t border-gray-100">{renderMethodDetails()}</div>
 
-          {/* 검증 경고 (Validation Alert) */}
-          <ProofValidationAlert method={method} proof={method.proof} />
-        </div>
+          {/* 증빙 서류 (Proof Document) - 필요 시, 기타 결제 제외 */}
+          {requiresProof && method.type !== 'other' && (
+            <div className="pt-4 border-t border-gray-100 space-y-4">
+              <ProofSelector
+                value={method.proof?.type || 'none'}
+                onChange={(type) => onProofChange({ type })}
+                amount={method.amount}
+                showLaterOption
+              />
+
+              {/* 세금계산서 폼 (Tax Invoice Form) */}
+              {method.proof?.type === 'tax-invoice' && (
+                <TaxInvoiceForm
+                  value={method.proof}
+                  onChange={onProofChange}
+                  existingBusinessInfo={
+                    (method.type === 'narabill' || method.type === 'contract') &&
+                    method.details
+                      ? (method.details as FileUploadData).businessInfo
+                      : undefined
+                  }
+                />
+              )}
+
+              {/* 현금영수증 폼 (Cash Receipt Form) */}
+              {method.proof?.type === 'cash-receipt' && (
+                <CashReceiptForm
+                  value={method.proof}
+                  onChange={onProofChange}
+                />
+              )}
+
+              {/* 검증 경고 (Validation Alert) */}
+              <ProofValidationAlert method={method} proof={method.proof} />
+            </div>
+          )}
+        </>
       )}
     </MethodCard>
   );
@@ -631,6 +704,20 @@ function SplitPayorMethodsSection({
   const payorLabel = splitPayor.payor.type === 'company'
     ? splitPayor.payor.company || splitPayor.payor.name
     : splitPayor.payor.name;
+
+  // 🆕 첫번째 결제 수단이 없으면 자동 추가 (토스페이먼츠 기본값)
+  React.useEffect(() => {
+    if (splitPayor.methods.length === 0) {
+      onAddMethod();
+    }
+  }, []);
+
+  // 🆕 첫번째 탭 자동 선택
+  React.useEffect(() => {
+    if (splitPayor.methods.length > 0 && !activeMethodId) {
+      setActiveMethodId(splitPayor.methods[0].id);
+    }
+  }, [splitPayor.methods, activeMethodId]);
 
   // 활성 탭이 삭제된 경우 첫 번째 탭으로 변경 (Switch to first tab if active tab is deleted)
   React.useEffect(() => {
@@ -675,10 +762,10 @@ function SplitPayorMethodsSection({
               key={method.id}
               onClick={() => setActiveMethodId(method.id)}
               className={cn(
-                'flex items-center gap-2 px-4 py-2 border-b-2 transition-colors relative group',
+                'flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors relative group',
                 activeMethodId === method.id
-                  ? 'border-[#1a2867] text-[#1a2867] font-medium'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'bg-[#1a2867] text-white font-semibold' // 🎨 네이비 배경 + 흰색 폰트
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               )}
             >
               <span className="text-sm">
@@ -690,7 +777,12 @@ function SplitPayorMethodsSection({
                     e.stopPropagation();
                     onRemoveMethod(method.id);
                   }}
-                  className="p-0.5 rounded hover:bg-gray-200 transition-colors"
+                  className={cn(
+                    'p-0.5 rounded transition-colors',
+                    activeMethodId === method.id
+                      ? 'hover:bg-[#2a3a7f]' // 네이비 탭일 때 더 진한 네이비 호버
+                      : 'hover:bg-gray-300'
+                  )}
                   title="결제 수단 삭제"
                 >
                   <X className="h-3 w-3" />
@@ -860,6 +952,12 @@ function SplitPayorMethodCard({
             <TaxInvoiceForm
               value={method.proof}
               onChange={handleProofChange}
+              existingBusinessInfo={
+                (method.type === 'narabill' || method.type === 'contract') &&
+                method.details
+                  ? (method.details as FileUploadData).businessInfo
+                  : undefined
+              }
             />
           )}
 

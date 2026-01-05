@@ -4,12 +4,14 @@
 import React, { useCallback, useMemo, useEffect } from 'react';
 import { Users, User, Plus, X, AlertCircle, UserCheck, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { PayorInfo, PayorMode, PayorSource, SplitPayor, PaymentSchedule, SavedPayor } from '../../types';
+import type { PayorInfo, PayorMode, PayorSource, SplitPayor, PaymentSchedule, SavedPayor, SchedulePayorAllocation } from '../../types';
 import { EMPTY_PAYOR_INFO } from '../../utils/constants';
 import { PayorInfoForm, PayorInfoSummary, validatePayorInfo } from '../payor/PayorInfoForm';
 import { PayorTypeBadge } from '../payor/PayorTypeTabs';
 import { AmountInput, formatAmount } from '../shared/AmountInput';
 import { StepCard, StepCardActions, StepSummaryGrid } from './StepCard';
+import { PayorScheduleAllocator } from '../payor/PayorScheduleAllocator';
+import { validateAllAllocations } from '../../utils/validation';
 
 // 고객 정보 인터페이스 (Customer Info Interface)
 // UnifiedPayment에서 전달받아 "내가 직접 결제" 선택 시 자동 입력에 사용
@@ -28,6 +30,11 @@ interface PayorStepProps {
   totalOrderAmount: number; // 총 주문 금액 (Total order amount)
   savedPayors: SavedPayor[];
   customerInfo?: CustomerInfo; // 고객 정보 (Customer info for auto-fill)
+  // 🆕 일정별 결제자 배분 (Schedule Payor Allocation)
+  allocations: SchedulePayorAllocation[];
+  onAddAllocation: (allocation: SchedulePayorAllocation) => void;
+  onUpdateAllocation: (id: string, amount: number) => void;
+  onRemoveAllocation: (id: string) => void;
   onPayorModeChange: (mode: PayorMode) => void;
   onSinglePayorChange: (payor: PayorInfo) => void;
   onSchedulePayorChange: (scheduleId: string, payor: PayorInfo) => void;
@@ -53,6 +60,10 @@ export function PayorStep({
   totalOrderAmount,
   savedPayors,
   customerInfo,
+  allocations,
+  onAddAllocation,
+  onUpdateAllocation,
+  onRemoveAllocation,
   onPayorModeChange,
   onSinglePayorChange,
   onSchedulePayorChange,
@@ -168,6 +179,12 @@ export function PayorStep({
       );
     }
 
+    // 🆕 deferred 모드: 메모는 선택사항이므로 항상 진행 가능
+    if (payorMode === 'deferred') {
+      return true;
+    }
+
+    // per-schedule 모드
     return schedules.every(
       (s) => s.payor && Object.keys(validatePayorInfo(s.payor)).length === 0
     );
@@ -630,126 +647,141 @@ export function PayorStep({
         {/* 분할 결제자 폼 (Split Amount Payor Forms) */}
         {payorMode === 'split-amount' && (
           <div className="space-y-4">
-            {/* 탭 (Tabs) */}
-            <div className="flex flex-wrap border-b border-gray-200 gap-1">
-              {splitPayors.map((sp, index) => (
-                <button
-                  key={sp.id}
-                  onClick={() => setActiveSplitTab(sp.id)}
-                  className={cn(
-                    'px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2',
-                    activeSplitTab === sp.id
-                      ? 'border-[#1a2867] text-[#1a2867]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  )}
-                >
-                  결제자 {index + 1}
-                  {splitPayors.length > 1 && (
+            {/* 🆕 멀티 일정 시 드래그 앤 드롭 배분 (Multi-schedule: Drag & Drop Allocation) */}
+            {schedules.length >= 2 ? (
+              <PayorScheduleAllocator
+                schedules={schedules}
+                splitPayors={splitPayors}
+                allocations={allocations}
+                onAddAllocation={onAddAllocation}
+                onUpdateAllocation={onUpdateAllocation}
+                onRemoveAllocation={onRemoveAllocation}
+              />
+            ) : (
+              /* 기존 UI: 단일 일정일 때 (Original UI: Single Schedule) */
+              <>
+                {/* 탭 (Tabs) */}
+                <div className="flex flex-wrap border-b border-gray-200 gap-1">
+                  {splitPayors.map((sp, index) => (
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveSplitPayor(sp.id);
-                      }}
-                      className="p-0.5 rounded-full hover:bg-gray-200 transition-colors"
+                      key={sp.id}
+                      onClick={() => setActiveSplitTab(sp.id)}
+                      className={cn(
+                        'px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2',
+                        activeSplitTab === sp.id
+                          ? 'border-[#1a2867] text-[#1a2867]'
+                          : 'border-transparent text-gray-500 hover:text-gray-700'
+                      )}
                     >
-                      <X className="h-3 w-3" />
+                      결제자 {index + 1}
+                      {splitPayors.length > 1 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveSplitPayor(sp.id);
+                          }}
+                          className="p-0.5 rounded-full hover:bg-gray-200 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
                     </button>
-                  )}
-                </button>
-              ))}
-              {/* 결제자 추가 버튼 (Add Payor Button) */}
-              <button
-                onClick={handleAddSplitPayor}
-                className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-[#fab803] border-b-2 border-transparent flex items-center gap-1 transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                추가
-              </button>
-            </div>
+                  ))}
+                  {/* 결제자 추가 버튼 (Add Payor Button) */}
+                  <button
+                    onClick={handleAddSplitPayor}
+                    className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-[#fab803] border-b-2 border-transparent flex items-center gap-1 transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                    추가
+                  </button>
+                </div>
 
-            {/* 활성 탭 폼 (Active Tab Form) */}
-            {splitPayors.map((sp) => (
-              <div
-                key={sp.id}
-                className={cn(activeSplitTab === sp.id ? 'block' : 'hidden', 'space-y-4')}
-              >
-                {/* 금액 입력 (Amount Input) */}
-                <AmountInput
-                  label="결제 금액"
-                  value={sp.amount}
-                  onChange={(amount) => onUpdateSplitPayor(sp.id, { amount })}
-                  percentageButtons={[100, 50, 30, 20, 10]}
-                  totalAmount={totalOrderAmount}
-                  size="lg"
-                />
+                {/* 활성 탭 폼 (Active Tab Form) */}
+                {splitPayors.map((sp) => (
+                  <div
+                    key={sp.id}
+                    className={cn(activeSplitTab === sp.id ? 'block' : 'hidden', 'space-y-4')}
+                  >
+                    {/* 금액 입력 (Amount Input) */}
+                    <AmountInput
+                      label="결제 금액"
+                      value={sp.amount}
+                      onChange={(amount) => onUpdateSplitPayor(sp.id, { amount })}
+                      percentageButtons={[100, 50, 30, 20, 10]}
+                      totalAmount={totalOrderAmount}
+                      size="lg"
+                    />
 
-                {/* Inline 피드백 (Inline Feedback) */}
-                {splitPayors.length > 1 && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    현재 합계: {formatAmount(splitPayorsTotalAmount)}원 /
-                    목표: {formatAmount(totalOrderAmount)}원
-                    {splitPayorsTotalAmount !== totalOrderAmount && (
-                      <span className={cn(
-                        "ml-2 font-medium",
-                        splitPayorsTotalAmount > totalOrderAmount ? "text-red-500" : "text-amber-500"
-                      )}>
-                        ({splitPayorsTotalAmount > totalOrderAmount ? '+' : ''}{formatAmount(Math.abs(splitPayorsTotalAmount - totalOrderAmount))}원)
-                      </span>
+                    {/* Inline 피드백 (Inline Feedback) */}
+                    {splitPayors.length > 1 && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        현재 합계: {formatAmount(splitPayorsTotalAmount)}원 /
+                        목표: {formatAmount(totalOrderAmount)}원
+                        {splitPayorsTotalAmount !== totalOrderAmount && (
+                          <span className={cn(
+                            "ml-2 font-medium",
+                            splitPayorsTotalAmount > totalOrderAmount ? "text-red-500" : "text-amber-500"
+                          )}>
+                            ({splitPayorsTotalAmount > totalOrderAmount ? '+' : ''}{formatAmount(Math.abs(splitPayorsTotalAmount - totalOrderAmount))}원)
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 결제자 정보 폼 (Payor Info Form) */}
+                    <PayorInfoForm
+                      value={sp.payor}
+                      onChange={(payor) => onUpdateSplitPayor(sp.id, { payor })}
+                      savedPayors={savedPayors}
+                      showSavedPayors
+                      showSaveCheckbox={false}
+                    />
+                  </div>
+                ))}
+
+                {/* 금액 합계 검증 (Amount Total Validation) */}
+                <div className={cn(
+                  'rounded-xl p-4 flex items-center justify-between',
+                  isSplitAmountValid
+                    ? 'bg-green-50 border border-green-100'
+                    : 'bg-red-50 border border-red-100'
+                )}>
+                  <div className="flex items-center gap-2">
+                    {!isSplitAmountValid && <AlertCircle className="h-4 w-4 text-red-500" />}
+                    <span className="text-sm text-gray-700">결제 금액 합계</span>
+                  </div>
+                  <div className="text-right">
+                    <span className={cn(
+                      'text-lg font-bold',
+                      isSplitAmountValid ? 'text-green-600' : 'text-red-500'
+                    )}>
+                      {formatAmount(splitPayorsTotalAmount)}원
+                    </span>
+                    {!isSplitAmountValid && (
+                      <p className="text-xs text-red-500 mt-0.5">
+                        {splitPayorsTotalAmount > totalOrderAmount
+                          ? `${formatAmount(splitPayorsTotalAmount - totalOrderAmount)}원 초과`
+                          : `${formatAmount(totalOrderAmount - splitPayorsTotalAmount)}원 부족`}
+                      </p>
                     )}
                   </div>
-                )}
+                </div>
 
-                {/* 결제자 정보 폼 (Payor Info Form) */}
-                <PayorInfoForm
-                  value={sp.payor}
-                  onChange={(payor) => onUpdateSplitPayor(sp.id, { payor })}
-                  savedPayors={savedPayors}
-                  showSavedPayors
-                  showSaveCheckbox={false}
-                />
-              </div>
-            ))}
-
-            {/* 금액 합계 검증 (Amount Total Validation) */}
-            <div className={cn(
-              'rounded-xl p-4 flex items-center justify-between',
-              isSplitAmountValid
-                ? 'bg-green-50 border border-green-100'
-                : 'bg-red-50 border border-red-100'
-            )}>
-              <div className="flex items-center gap-2">
-                {!isSplitAmountValid && <AlertCircle className="h-4 w-4 text-red-500" />}
-                <span className="text-sm text-gray-700">결제 금액 합계</span>
-              </div>
-              <div className="text-right">
-                <span className={cn(
-                  'text-lg font-bold',
-                  isSplitAmountValid ? 'text-green-600' : 'text-red-500'
-                )}>
-                  {formatAmount(splitPayorsTotalAmount)}원
-                </span>
-                {!isSplitAmountValid && (
-                  <p className="text-xs text-red-500 mt-0.5">
-                    {splitPayorsTotalAmount > totalOrderAmount
-                      ? `${formatAmount(splitPayorsTotalAmount - totalOrderAmount)}원 초과`
-                      : `${formatAmount(totalOrderAmount - splitPayorsTotalAmount)}원 부족`}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* 정보 저장 체크박스 (Save Info Checkbox) */}
-            <label className="flex items-center gap-3 cursor-pointer pt-4 border-t border-gray-100">
-              <input
-                type="checkbox"
-                checked={savePayor}
-                onChange={(e) => onSavePayorChange(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-[#fab803] focus:ring-[#fab803]"
-              />
-              <span className="text-sm text-gray-700">
-                다음 주문을 위해 결제자 정보 저장하기
-              </span>
-            </label>
+                {/* 정보 저장 체크박스 (Save Info Checkbox) */}
+                <label className="flex items-center gap-3 cursor-pointer pt-4 border-t border-gray-100">
+                  <input
+                    type="checkbox"
+                    checked={savePayor}
+                    onChange={(e) => onSavePayorChange(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-[#fab803] focus:ring-[#fab803]"
+                  />
+                  <span className="text-sm text-gray-700">
+                    다음 주문을 위해 결제자 정보 저장하기
+                  </span>
+                </label>
+              </>
+            )}
           </div>
         )}
 

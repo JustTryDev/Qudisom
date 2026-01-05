@@ -279,6 +279,7 @@ export const INITIAL_UNIFIED_PAYMENT: UnifiedPayment = {
   payorMode: 'single',
   singlePayor: { ...EMPTY_PAYOR_INFO },
   splitPayors: [], // 금액 분할 결제자 목록 (Split amount payors list)
+  schedulePayorAllocations: [], // 일정별 결제자 배분 (Schedule payor allocations)
   savedPayors: [],
   useDeposit: false,
   depositAmount: 0,

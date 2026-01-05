@@ -19,6 +19,16 @@ export interface SplitPayor {
   methods: PaymentMethod[]; // 이 결제자의 결제 수단 (This payor's payment methods)
 }
 
+// 일정별 결제자 배분 (Schedule Payor Allocation)
+// 멀티 결제 시 각 결제자가 각 일정에 얼마씩 낼지 매핑
+// 예: 선금 500k에 A가 150k, B가 200k, C가 150k 배분
+export interface SchedulePayorAllocation {
+  id: string;
+  scheduleId: string; // 어느 일정인지 (Which schedule)
+  splitPayorId: string; // 누가 내는지 (Who pays)
+  amount: number; // 얼마를 내는지 (How much to pay)
+}
+
 export interface UnifiedPayment {
   // Step 1: 결제 일정 (Payment Schedule)
   schedules: PaymentSchedule[];
@@ -27,6 +37,7 @@ export interface UnifiedPayment {
   payorMode: PayorMode;
   singlePayor?: PayorInfo;
   splitPayors: SplitPayor[]; // 금액 분할 결제자 목록 (Split amount payors list)
+  schedulePayorAllocations: SchedulePayorAllocation[]; // 일정별 결제자 배분 (Schedule payor allocations)
   savedPayors: SavedPayor[];
 
   // Step 5: 최종 확인 (Final Confirmation)
@@ -301,6 +312,12 @@ export type PaymentAction =
   | { type: 'ADD_SPLIT_PAYOR_METHOD'; payload: { splitPayorId: string; method: PaymentMethod } }
   | { type: 'UPDATE_SPLIT_PAYOR_METHOD'; payload: { splitPayorId: string; methodId: string; data: Partial<PaymentMethod> } }
   | { type: 'REMOVE_SPLIT_PAYOR_METHOD'; payload: { splitPayorId: string; methodId: string } }
+  // 일정별 결제자 배분 액션 (Schedule Payor Allocation Actions)
+  | { type: 'ADD_ALLOCATION'; payload: SchedulePayorAllocation }
+  | { type: 'UPDATE_ALLOCATION'; payload: { id: string; amount: number } }
+  | { type: 'REMOVE_ALLOCATION'; payload: string }
+  | { type: 'REMOVE_ALLOCATIONS_BY_SCHEDULE'; payload: string } // 일정 삭제 시
+  | { type: 'REMOVE_ALLOCATIONS_BY_PAYOR'; payload: string } // 결제자 삭제 시
   | { type: 'ADD_PAYMENT_METHOD'; payload: { scheduleId: string; method: PaymentMethod } }
   | { type: 'UPDATE_PAYMENT_METHOD'; payload: { scheduleId: string; methodId: string; data: Partial<PaymentMethod> } }
   | { type: 'REMOVE_PAYMENT_METHOD'; payload: { scheduleId: string; methodId: string } }
