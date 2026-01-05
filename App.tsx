@@ -1,41 +1,48 @@
-import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { SignupCarousel } from './components/SignupCarousel';
-import { SignupForm } from './components/SignupForm';
-import { LoginForm } from './components/LoginForm';
-import { ShippingDesignInfoPage } from './components/ShippingDesignInfoPage';
-import Dashboard from './Dashboard';
-import Quote from './Quote';
-import Payment from './Payment';
-import AdditionalInfo from './AdditionalInfo';
-import EContract from './EContract';
-import NewQuoteForm from './new-file';
-import AboutUs from './AboutUs';
-import AutoQuoteCalculator from './AutoQuoteCalculator';
-import QuoteRequest from './QuoteRequest';
-import OrderProcess from './OrderProcess';
-import ProductionProcess from './ProductionProcess';
-import ProductionExamples from './ProductionExamples';
-import FAQ from './FAQ';
-import ResourceCenter from './ResourceCenter';
-import Notice from './Notice';
-import NoticeDetail from './NoticeDetail';
-import GoodsStore from './GoodsStore';
-import MainHeroSection from './MainHeroSection';
-import TransactionStatement from './TransactionStatement';
-import WorkOrder from './WorkOrder';
-import DefectReport from './DefectReport';
-import ShippingOrder from './ShippingOrder';
-import QuickDeliveryBooking from './QuickDeliveryBooking';
-import InventoryStatus from './InventoryStatus';
-import ElectronicContract from './ElectronicContract';
-import QuoteRequestPage from './QuoteRequestPage';
-import { Home, LogIn, UserPlus, FileText, Menu, X, LayoutDashboard, Receipt, Truck, CreditCard, FileSignature, ChevronDown, Info, Calculator, ClipboardList, Package, Wrench, ImageIcon, HelpCircle, FolderOpen, Bell, Store, ClipboardCheck, AlertTriangle, PackageX, Zap, FileEdit } from 'lucide-react';
+// Auth pages
+import { SignupCarousel } from './src/pages/auth/SignupCarousel';
+import { SignupForm } from './src/pages/auth/SignupForm';
+import { LoginForm } from './src/pages/auth/LoginForm';
+// Home page
+import MainHeroSection from './src/pages/home/MainHeroSection';
+// Dashboard pages
+import Dashboard from './src/pages/dashboard/Dashboard';
+import TransactionStatement from './src/pages/dashboard/TransactionStatement';
+// Quote pages
+import Quote from './src/pages/quote/Quote';
+import QuoteRequest from './src/pages/quote/QuoteRequest';
+import QuoteRequestPage from './src/pages/quote/QuoteRequestPage';
+import AutoQuoteCalculator from './src/pages/quote/AutoQuoteCalculator';
+import NewQuoteForm from './src/pages/quote/NewQuoteForm';
+// Order pages
+import Payment from './src/pages/order/Payment';
+import AdditionalInfo from './src/pages/order/AdditionalInfo';
+import OrderProcess from './src/pages/order/OrderProcess';
+// Payment pages (Unified - 통합 결제 페이지)
+import { UnifiedPayment } from './src/pages/payment';
+// Production pages
+import ProductionProcess from './src/pages/production/ProductionProcess';
+import ProductionExamples from './src/pages/production/ProductionExamples';
+// Contract pages
+import EContract from './src/pages/contract/EContract';
+import ElectronicContract from './src/pages/contract/ElectronicContract';
+// Shipping pages
+import { ShippingDesignInfoPage } from './src/pages/shipping/ShippingDesignInfoPage';
+import QuickDeliveryBooking from './src/pages/shipping/QuickDeliveryBooking';
+// Store page
+import GoodsStore from './src/pages/store/GoodsStore';
+// Info pages
+import Notice from './src/pages/info/Notice';
+import NoticeDetail from './src/pages/info/NoticeDetail';
+import FAQ from './src/pages/info/FAQ';
+import ResourceCenter from './src/pages/info/ResourceCenter';
+import AboutUs from './src/pages/info/AboutUs';
+import { Home, LogIn, UserPlus, FileText, Menu, X, LayoutDashboard, Receipt, Truck, CreditCard, FileSignature, ChevronDown, Info, Calculator, ClipboardList, Package, Wrench, ImageIcon, HelpCircle, FolderOpen, Bell, Store, Zap, Wallet } from 'lucide-react';
 
 // 네비게이션 바 컴포넌트 (Navigation Bar Component)
 function NavigationBar() {
   const location = useLocation();
-  const navigate = useNavigate();
   const [isNewQuoteModalOpen, setIsNewQuoteModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isHyunseoDropdownOpen, setIsHyunseoDropdownOpen] = useState(false);
@@ -47,12 +54,11 @@ function NavigationBar() {
 
   // Working(Hyunseo) 메뉴 경로 리스트
   const hyunseoPages = [
-    '/dashboard', '/auto-quote', '/quote-request', 
-    '/payment',
-    '/goods-store', 
-    '/transaction-statement', '/work-order', '/defect-report', 
-    '/shipping-order', '/quick-delivery', '/inventory-status', 
-    '/quote-request-page'
+    '/dashboard', '/auto-quote', '/quote-request',
+    '/payment', '/goods-store',
+    '/transaction-statement', '/quick-delivery',
+    '/quote-request-page', '/electronic-contract',
+    '/unified-payment'
   ];
 
   // Finished 메뉴 경로 리스트
@@ -116,7 +122,7 @@ function NavigationBar() {
                           currentPath === '/dashboard' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <LayoutDashboard className="w-4 h-4 flex-shrink-0" />
+                        <LayoutDashboard className="w-4 h-4 shrink-0" />
                         <span className="truncate">대시보드</span>
                       </Link>
                       <Link
@@ -126,7 +132,7 @@ function NavigationBar() {
                           currentPath === '/transaction-statement' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <Receipt className="w-4 h-4 flex-shrink-0" />
+                        <Receipt className="w-4 h-4 shrink-0" />
                         <span className="truncate">거래명세서</span>
                       </Link>
                       <Link
@@ -136,7 +142,7 @@ function NavigationBar() {
                           currentPath === '/payment' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <CreditCard className="w-4 h-4 flex-shrink-0" />
+                        <CreditCard className="w-4 h-4 shrink-0" />
                         <span className="truncate">결제 수단 선택</span>
                       </Link>
                       <Link
@@ -146,7 +152,7 @@ function NavigationBar() {
                           currentPath === '/goods-store' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <Store className="w-4 h-4 flex-shrink-0" />
+                        <Store className="w-4 h-4 shrink-0" />
                         <span className="truncate">굿즈 스토어</span>
                       </Link>
                       <Link
@@ -156,7 +162,7 @@ function NavigationBar() {
                           currentPath === '/auto-quote' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <Calculator className="w-4 h-4 flex-shrink-0" />
+                        <Calculator className="w-4 h-4 shrink-0" />
                         <span className="truncate">자동 견적 산출기</span>
                       </Link>
                       <Link
@@ -166,38 +172,8 @@ function NavigationBar() {
                           currentPath === '/quote-request' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <ClipboardList className="w-4 h-4 flex-shrink-0" />
+                        <ClipboardList className="w-4 h-4 shrink-0" />
                         <span className="truncate">견적 요청</span>
-                      </Link>
-                      <Link
-                        to="/work-order"
-                        onClick={() => setIsHyunseoDropdownOpen(false)}
-                        className={`px-4 py-2.5 rounded-lg text-left transition-all font-medium hover:bg-muted flex items-center gap-3 ${
-                          currentPath === '/work-order' ? 'bg-muted text-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        <FileEdit className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">작업 지시서</span>
-                      </Link>
-                      <Link
-                        to="/defect-report"
-                        onClick={() => setIsHyunseoDropdownOpen(false)}
-                        className={`px-4 py-2.5 rounded-lg text-left transition-all font-medium hover:bg-muted flex items-center gap-3 ${
-                          currentPath === '/defect-report' ? 'bg-muted text-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">결함 보고서</span>
-                      </Link>
-                      <Link
-                        to="/shipping-order"
-                        onClick={() => setIsHyunseoDropdownOpen(false)}
-                        className={`px-4 py-2.5 rounded-lg text-left transition-all font-medium hover:bg-muted flex items-center gap-3 ${
-                          currentPath === '/shipping-order' ? 'bg-muted text-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        <PackageX className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">출하 지시서</span>
                       </Link>
                       <Link
                         to="/quick-delivery"
@@ -206,18 +182,8 @@ function NavigationBar() {
                           currentPath === '/quick-delivery' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <Zap className="w-4 h-4 flex-shrink-0" />
+                        <Zap className="w-4 h-4 shrink-0" />
                         <span className="truncate">급속 배송 예약</span>
-                      </Link>
-                      <Link
-                        to="/inventory-status"
-                        onClick={() => setIsHyunseoDropdownOpen(false)}
-                        className={`px-4 py-2.5 rounded-lg text-left transition-all font-medium hover:bg-muted flex items-center gap-3 ${
-                          currentPath === '/inventory-status' ? 'bg-muted text-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        <ClipboardCheck className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">재고 현황</span>
                       </Link>
                       <Link
                         to="/electronic-contract"
@@ -226,7 +192,7 @@ function NavigationBar() {
                           currentPath === '/electronic-contract' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <FileSignature className="w-4 h-4 flex-shrink-0" />
+                        <FileSignature className="w-4 h-4 shrink-0" />
                         <span className="truncate">전자 계약</span>
                       </Link>
                       <Link
@@ -236,8 +202,18 @@ function NavigationBar() {
                           currentPath === '/quote-request-page' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <FileText className="w-4 h-4 flex-shrink-0" />
+                        <FileText className="w-4 h-4 shrink-0" />
                         <span className="truncate">견적 요청서(페이지)</span>
+                      </Link>
+                      <Link
+                        to="/unified-payment"
+                        onClick={() => setIsHyunseoDropdownOpen(false)}
+                        className={`px-4 py-2.5 rounded-lg text-left transition-all font-medium hover:bg-muted flex items-center gap-3 ${
+                          currentPath === '/unified-payment' ? 'bg-muted text-foreground' : 'text-muted-foreground'
+                        }`}
+                      >
+                        <Wallet className="w-4 h-4 shrink-0" />
+                        <span className="truncate">통합 결제</span>
                       </Link>
                     </div>
                   </div>
@@ -276,7 +252,7 @@ function NavigationBar() {
                           currentPath === '/quote' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <Receipt className="w-4 h-4 flex-shrink-0" />
+                        <Receipt className="w-4 h-4 shrink-0" />
                         <span className="truncate">견적서 양식</span>
                       </Link>
                       <button
@@ -286,7 +262,7 @@ function NavigationBar() {
                         }}
                         className="px-4 py-2.5 rounded-lg text-left transition-all font-medium hover:bg-muted flex items-center gap-3 text-muted-foreground"
                       >
-                        <FileText className="w-4 h-4 flex-shrink-0" />
+                        <FileText className="w-4 h-4 shrink-0" />
                         <span className="truncate">견적 요청 양식</span>
                       </button>
                       <Link
@@ -296,7 +272,7 @@ function NavigationBar() {
                           currentPath === '/additional-info' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <FileText className="w-4 h-4 flex-shrink-0" />
+                        <FileText className="w-4 h-4 shrink-0" />
                         <span className="truncate">결제 정보 입력</span>
                       </Link>
                       <Link
@@ -306,7 +282,7 @@ function NavigationBar() {
                           currentPath === '/econtract' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <FileSignature className="w-4 h-4 flex-shrink-0" />
+                        <FileSignature className="w-4 h-4 shrink-0" />
                         <span className="truncate">전자 계약 정보 입력</span>
                       </Link>
                       <Link
@@ -316,7 +292,7 @@ function NavigationBar() {
                           currentPath === '/shipping-design' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <Truck className="w-4 h-4 flex-shrink-0" />
+                        <Truck className="w-4 h-4 shrink-0" />
                         <span className="truncate">배송 정보 입력</span>
                       </Link>
                       <Link
@@ -326,7 +302,7 @@ function NavigationBar() {
                           currentPath === '/order-process' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <Package className="w-4 h-4 flex-shrink-0" />
+                        <Package className="w-4 h-4 shrink-0" />
                         <span className="truncate">주문 과정</span>
                       </Link>
                       <Link
@@ -336,7 +312,7 @@ function NavigationBar() {
                           currentPath === '/production-process' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <Wrench className="w-4 h-4 flex-shrink-0" />
+                        <Wrench className="w-4 h-4 shrink-0" />
                         <span className="truncate">제작 과정</span>
                       </Link>
                       <Link
@@ -346,7 +322,7 @@ function NavigationBar() {
                           currentPath === '/production-examples' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <ImageIcon className="w-4 h-4 flex-shrink-0" />
+                        <ImageIcon className="w-4 h-4 shrink-0" />
                         <span className="truncate">제작 사례</span>
                       </Link>
                       <Link
@@ -356,7 +332,7 @@ function NavigationBar() {
                           currentPath === '/notice' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <Bell className="w-4 h-4 flex-shrink-0" />
+                        <Bell className="w-4 h-4 shrink-0" />
                         <span className="truncate">공지사항</span>
                       </Link>
                       <Link
@@ -366,7 +342,7 @@ function NavigationBar() {
                           currentPath === '/faq' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <HelpCircle className="w-4 h-4 flex-shrink-0" />
+                        <HelpCircle className="w-4 h-4 shrink-0" />
                         <span className="truncate">자주 묻는 질문</span>
                       </Link>
                       <Link
@@ -376,7 +352,7 @@ function NavigationBar() {
                           currentPath === '/resource-center' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <FolderOpen className="w-4 h-4 flex-shrink-0" />
+                        <FolderOpen className="w-4 h-4 shrink-0" />
                         <span className="truncate">자료실</span>
                       </Link>
                     </div>
@@ -416,7 +392,7 @@ function NavigationBar() {
                           currentPath === '/new-file' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <FileText className="w-4 h-4 flex-shrink-0" />
+                        <FileText className="w-4 h-4 shrink-0" />
                         <span className="truncate">견적 요청서</span>
                       </Link>
                       <Link
@@ -426,7 +402,7 @@ function NavigationBar() {
                           currentPath === '/about' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <Info className="w-4 h-4 flex-shrink-0" />
+                        <Info className="w-4 h-4 shrink-0" />
                         <span className="truncate">About Us</span>
                       </Link>
                     </div>
@@ -466,7 +442,7 @@ function NavigationBar() {
                           currentPath === '/login' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <LogIn className="w-4 h-4 flex-shrink-0" />
+                        <LogIn className="w-4 h-4 shrink-0" />
                         <span className="truncate">로그인 페이지</span>
                       </Link>
                       <Link
@@ -476,7 +452,7 @@ function NavigationBar() {
                           currentPath === '/signup' ? 'bg-muted text-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <UserPlus className="w-4 h-4 flex-shrink-0" />
+                        <UserPlus className="w-4 h-4 shrink-0" />
                         <span className="truncate">회원가입 페이지</span>
                       </Link>
                     </div>
@@ -516,13 +492,10 @@ function NavigationBar() {
               <Link to="/goods-store" onClick={() => setIsMobileMenuOpen(false)} className={`w-full block px-6 py-3 rounded-xl transition-all font-semibold text-left ${currentPath === '/goods-store' ? 'bg-foreground text-white' : 'text-muted-foreground hover:bg-muted'}`}>굿즈 스토어</Link>
               <Link to="/auto-quote" onClick={() => setIsMobileMenuOpen(false)} className={`w-full block px-6 py-3 rounded-xl transition-all font-semibold text-left ${currentPath === '/auto-quote' ? 'bg-foreground text-white' : 'text-muted-foreground hover:bg-muted'}`}>자동 견적 산출기</Link>
               <Link to="/quote-request" onClick={() => setIsMobileMenuOpen(false)} className={`w-full block px-6 py-3 rounded-xl transition-all font-semibold text-left ${currentPath === '/quote-request' ? 'bg-foreground text-white' : 'text-muted-foreground hover:bg-muted'}`}>견적 요청</Link>
-              <Link to="/work-order" onClick={() => setIsMobileMenuOpen(false)} className={`w-full block px-6 py-3 rounded-xl transition-all font-semibold text-left ${currentPath === '/work-order' ? 'bg-foreground text-white' : 'text-muted-foreground hover:bg-muted'}`}>작업 지시서</Link>
-              <Link to="/defect-report" onClick={() => setIsMobileMenuOpen(false)} className={`w-full block px-6 py-3 rounded-xl transition-all font-semibold text-left ${currentPath === '/defect-report' ? 'bg-foreground text-white' : 'text-muted-foreground hover:bg-muted'}`}>결함 보고서</Link>
-              <Link to="/shipping-order" onClick={() => setIsMobileMenuOpen(false)} className={`w-full block px-6 py-3 rounded-xl transition-all font-semibold text-left ${currentPath === '/shipping-order' ? 'bg-foreground text-white' : 'text-muted-foreground hover:bg-muted'}`}>출하 지시서</Link>
               <Link to="/quick-delivery" onClick={() => setIsMobileMenuOpen(false)} className={`w-full block px-6 py-3 rounded-xl transition-all font-semibold text-left ${currentPath === '/quick-delivery' ? 'bg-foreground text-white' : 'text-muted-foreground hover:bg-muted'}`}>급속 배송 예약</Link>
-              <Link to="/inventory-status" onClick={() => setIsMobileMenuOpen(false)} className={`w-full block px-6 py-3 rounded-xl transition-all font-semibold text-left ${currentPath === '/inventory-status' ? 'bg-foreground text-white' : 'text-muted-foreground hover:bg-muted'}`}>재고 현황</Link>
               <Link to="/electronic-contract" onClick={() => setIsMobileMenuOpen(false)} className={`w-full block px-6 py-3 rounded-xl transition-all font-semibold text-left ${currentPath === '/electronic-contract' ? 'bg-foreground text-white' : 'text-muted-foreground hover:bg-muted'}`}>전자 계약</Link>
               <Link to="/quote-request-page" onClick={() => setIsMobileMenuOpen(false)} className={`w-full block px-6 py-3 rounded-xl transition-all font-semibold text-left ${currentPath === '/quote-request-page' ? 'bg-foreground text-white' : 'text-muted-foreground hover:bg-muted'}`}>견적 요청서(페이지)</Link>
+              <Link to="/unified-payment" onClick={() => setIsMobileMenuOpen(false)} className={`w-full block px-6 py-3 rounded-xl transition-all font-semibold text-left ${currentPath === '/unified-payment' ? 'bg-foreground text-white' : 'text-muted-foreground hover:bg-muted'}`}>통합 결제</Link>
 
               <div className="text-xs px-4 py-2 text-muted-foreground font-semibold">Finished</div>
               <Link to="/quote" onClick={() => setIsMobileMenuOpen(false)} className={`w-full block px-6 py-3 rounded-xl transition-all font-semibold text-left ${currentPath === '/quote' ? 'bg-foreground text-white' : 'text-muted-foreground hover:bg-muted'}`}>견적서</Link>
@@ -551,7 +524,7 @@ function NavigationBar() {
 
       {/* 견적 요청 모달 (Quote Request Modal) */}
       {isNewQuoteModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-100 p-4">
           <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-border px-6 py-4 flex items-center justify-between">
               <h2 className="text-xl font-bold">견적 요청서</h2>
@@ -591,13 +564,10 @@ export default function App() {
             <Route path="/goods-store" element={<GoodsStore />} />
             <Route path="/auto-quote" element={<AutoQuoteCalculator />} />
             <Route path="/quote-request" element={<QuoteRequest />} />
-            <Route path="/work-order" element={<WorkOrder />} />
-            <Route path="/defect-report" element={<DefectReport />} />
-            <Route path="/shipping-order" element={<ShippingOrder />} />
             <Route path="/quick-delivery" element={<QuickDeliveryBooking />} />
-            <Route path="/inventory-status" element={<InventoryStatus />} />
             <Route path="/electronic-contract" element={<ElectronicContract />} />
             <Route path="/quote-request-page" element={<QuoteRequestPage />} />
+            <Route path="/unified-payment" element={<UnifiedPayment />} />
             
             {/* Finished Routes */}
             <Route path="/quote" element={<Quote onNavigate={(page) => window.location.href = `/${page}`} />} />

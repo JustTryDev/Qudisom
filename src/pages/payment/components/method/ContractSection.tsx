@@ -1,0 +1,147 @@
+// 수의 계약 섹션 컴포넌트 (Direct Contract Section Component)
+
+import React, { useCallback } from 'react';
+import { FileSignature, Info, AlertTriangle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { FileUploadData, UploadedFile } from '../../types';
+import { FileUploader } from '../shared/FileUploader';
+
+interface ContractSectionProps {
+  value: FileUploadData | null;
+  onChange: (value: FileUploadData) => void;
+  amount: number;
+  disabled?: boolean;
+  className?: string;
+}
+
+export function ContractSection({
+  value,
+  onChange,
+  amount,
+  disabled = false,
+  className,
+}: ContractSectionProps) {
+  const data: FileUploadData = value || {
+    type: 'contract',
+    files: [],
+    instructions: '',
+    additionalNotes: '',
+  };
+
+  const handleFilesChange = useCallback(
+    (files: UploadedFile[]) => {
+      onChange({ ...data, files });
+    },
+    [data, onChange]
+  );
+
+  const handleInstructionsChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onChange({ ...data, instructions: e.target.value });
+    },
+    [data, onChange]
+  );
+
+  const handleNotesChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onChange({ ...data, additionalNotes: e.target.value });
+    },
+    [data, onChange]
+  );
+
+  return (
+    <div className={cn('space-y-4', className)}>
+      {/* 수의 계약 안내 (Direct Contract Info) */}
+      <div className="flex items-start gap-3 rounded-xl bg-pink-50 border border-pink-100 px-4 py-3">
+        <FileSignature className="h-5 w-5 text-pink-500 shrink-0 mt-0.5" />
+        <div className="text-sm text-pink-700">
+          <p className="font-medium">수의 계약</p>
+          <p className="mt-1 text-xs">
+            수의계약서를 기반으로 진행하는 계약 방식입니다.
+            관련 서류를 업로드해주세요.
+          </p>
+        </div>
+      </div>
+
+      {/* 결제 금액 (Payment Amount) */}
+      <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600">계약 금액</span>
+          <span className="text-lg font-bold text-gray-900">
+            {amount.toLocaleString()}원
+          </span>
+        </div>
+      </div>
+
+      {/* 서류 업로드 (Document Upload) */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-gray-700">
+          수의계약서 및 관련 서류 업로드
+        </label>
+        <FileUploader
+          files={data.files}
+          onFilesChange={handleFilesChange}
+          accept=".pdf,.doc,.docx,.hwp,.jpg,.jpeg,.png"
+          maxFiles={5}
+          description="PDF, DOC, HWP, 이미지 파일 (최대 5개)"
+          disabled={disabled}
+        />
+      </div>
+
+      {/* 계약 조건 입력 (Contract Terms Input) */}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-gray-700">
+          계약 조건 및 특이사항
+        </label>
+        <textarea
+          value={data.instructions}
+          onChange={handleInstructionsChange}
+          placeholder="계약 조건, 납품 기한, 특이사항 등을 입력해주세요"
+          disabled={disabled}
+          rows={4}
+          className={cn(
+            'w-full rounded-xl border px-4 py-3 text-sm transition-colors resize-none',
+            'focus:border-[#fab803] focus:outline-none focus:ring-2 focus:ring-[#fab803]/20',
+            'disabled:bg-gray-50 disabled:text-gray-400',
+            'border-gray-200'
+          )}
+        />
+      </div>
+
+      {/* 추가 메모 (Additional Notes) */}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-gray-700">
+          추가 메모 (선택)
+        </label>
+        <textarea
+          value={data.additionalNotes}
+          onChange={handleNotesChange}
+          placeholder="기타 참고 사항을 입력해주세요"
+          disabled={disabled}
+          rows={2}
+          className={cn(
+            'w-full rounded-xl border px-4 py-3 text-sm transition-colors resize-none',
+            'focus:border-[#fab803] focus:outline-none focus:ring-2 focus:ring-[#fab803]/20',
+            'disabled:bg-gray-50 disabled:text-gray-400',
+            'border-gray-200'
+          )}
+        />
+      </div>
+
+      {/* 주의사항 (Warning) */}
+      <div className="flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
+        <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+        <div className="text-sm text-amber-700">
+          <p className="font-medium">수의계약 진행 안내</p>
+          <ul className="mt-1 space-y-0.5 text-xs">
+            <li>• 계약서 검토 후 담당자가 연락드립니다</li>
+            <li>• 계약 체결 전까지 생산이 시작되지 않습니다</li>
+            <li>• 계약 조건에 따라 결제 일정이 조정될 수 있습니다</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ContractSection;
