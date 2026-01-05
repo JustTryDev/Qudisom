@@ -2,7 +2,7 @@
 // 간소화 버전: 결제자 기본 정보만 수집, 사업자 정보는 MethodStep에서 수집
 
 import React, { useCallback, useMemo, useEffect } from 'react';
-import { Users, User, Plus, X, AlertCircle, UserCheck } from 'lucide-react';
+import { Users, User, Plus, X, AlertCircle, UserCheck, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PayorInfo, PayorMode, PayorSource, SplitPayor, PaymentSchedule, SavedPayor } from '../../types';
 import { EMPTY_PAYOR_INFO } from '../../utils/constants';
@@ -305,7 +305,7 @@ export function PayorStep({
           <label className="text-sm font-medium text-gray-700">
             결제 주체
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             {/* 단일 결제 (Single Payor) */}
             <button
               type="button"
@@ -383,6 +383,46 @@ export function PayorStep({
                 </p>
                 <p className="text-xs text-gray-500">
                   결제 주체가 여러명입니다
+                </p>
+              </div>
+            </button>
+
+            {/* 나중에 결정 (Deferred) */}
+            <button
+              type="button"
+              onClick={() => {
+                handleModeChange('deferred');
+              }}
+              className={cn(
+                'flex items-center gap-3 rounded-xl border p-4 transition-all',
+                payorMode === 'deferred'
+                  ? 'border-[#1a2867] bg-[#1a2867]/5'
+                  : 'border-gray-200 hover:border-gray-300'
+              )}
+            >
+              <div
+                className={cn(
+                  'rounded-full p-2',
+                  payorMode === 'deferred'
+                    ? 'bg-[#1a2867]/20'
+                    : 'bg-gray-100'
+                )}
+              >
+                <Clock
+                  className={cn(
+                    'h-5 w-5',
+                    payorMode === 'deferred'
+                      ? 'text-[#1a2867]'
+                      : 'text-gray-500'
+                  )}
+                />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-gray-900">
+                  나중에 결정
+                </p>
+                <p className="text-xs text-gray-500">
+                  결제자 정보를 나중에 입력합니다
                 </p>
               </div>
             </button>
@@ -590,16 +630,6 @@ export function PayorStep({
         {/* 분할 결제자 폼 (Split Amount Payor Forms) */}
         {payorMode === 'split-amount' && (
           <div className="space-y-4">
-            {/* 총 금액 표시 (Total Amount Display) */}
-            <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">총 결제 금액</span>
-                <span className="text-lg font-bold text-gray-900">
-                  {formatAmount(totalOrderAmount)}원
-                </span>
-              </div>
-            </div>
-
             {/* 탭 (Tabs) */}
             <div className="flex flex-wrap border-b border-gray-200 gap-1">
               {splitPayors.map((sp, index) => (
@@ -648,7 +678,26 @@ export function PayorStep({
                   label="결제 금액"
                   value={sp.amount}
                   onChange={(amount) => onUpdateSplitPayor(sp.id, { amount })}
+                  percentageButtons={[100, 50, 30, 20, 10]}
+                  totalAmount={totalOrderAmount}
+                  size="lg"
                 />
+
+                {/* Inline 피드백 (Inline Feedback) */}
+                {splitPayors.length > 1 && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    현재 합계: {formatAmount(splitPayorsTotalAmount)}원 /
+                    목표: {formatAmount(totalOrderAmount)}원
+                    {splitPayorsTotalAmount !== totalOrderAmount && (
+                      <span className={cn(
+                        "ml-2 font-medium",
+                        splitPayorsTotalAmount > totalOrderAmount ? "text-red-500" : "text-amber-500"
+                      )}>
+                        ({splitPayorsTotalAmount > totalOrderAmount ? '+' : ''}{formatAmount(Math.abs(splitPayorsTotalAmount - totalOrderAmount))}원)
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* 결제자 정보 폼 (Payor Info Form) */}
                 <PayorInfoForm
@@ -701,6 +750,26 @@ export function PayorStep({
                 다음 주문을 위해 결제자 정보 저장하기
               </span>
             </label>
+          </div>
+        )}
+
+        {/* 나중에 결정 모드 (Deferred Mode) */}
+        {payorMode === 'deferred' && (
+          <div className="rounded-xl bg-blue-50 border border-blue-100 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              <p className="text-sm font-medium text-blue-900">
+                결제자 정보 입력 보류됨
+              </p>
+            </div>
+            <textarea
+              placeholder="예상 결제자 수, 대략적인 금액 등 메모를 남겨주세요..."
+              className="w-full rounded-lg border border-blue-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20"
+              rows={3}
+            />
+            <p className="text-xs text-blue-700">
+              주문 생성 후 대시보드에서 언제든지 결제자 정보를 추가하실 수 있습니다.
+            </p>
           </div>
         )}
 

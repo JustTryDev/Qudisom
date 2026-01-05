@@ -2,7 +2,7 @@
 // 분할 결제자 모드 지원: 각 결제자별로 독립적인 결제 수단 선택 가능
 
 import React, { useCallback, useMemo } from 'react';
-import { User, Building2 } from 'lucide-react';
+import { User, Building2, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type {
   PaymentSchedule,
@@ -369,8 +369,26 @@ function ScheduleMethodsSection({
   onUpdateDetails,
   onProofChange,
 }: ScheduleMethodsSectionProps) {
+  // 활성 결제 수단 탭 상태 (Active method tab state)
+  const [activeMethodId, setActiveMethodId] = React.useState<string>(
+    schedule.methods[0]?.id || ''
+  );
+
   // 남은 금액 계산 (Calculate remaining amount)
   const remainingAmount = schedule.amount - (validation?.methodTotal || 0);
+
+  // 활성 탭이 삭제된 경우 첫 번째 탭으로 변경 (Switch to first tab if active tab is deleted)
+  React.useEffect(() => {
+    if (!schedule.methods.find((m) => m.id === activeMethodId)) {
+      setActiveMethodId(schedule.methods[0]?.id || '');
+    }
+  }, [schedule.methods, activeMethodId]);
+
+  // 결제 수단 추가 후 새 탭으로 전환 (Switch to new tab after adding method)
+  const handleAddMethod = () => {
+    onAddMethod();
+    // 새 메서드의 ID를 알 수 없으므로, 다음 렌더링에서 자동으로 첫 번째로 설정됨
+  };
 
   return (
     <div className="space-y-4">
@@ -384,11 +402,58 @@ function ScheduleMethodsSection({
         </div>
       </div>
 
-      {/* 결제 수단 목록 (Payment Methods List) */}
-      <div className="space-y-4">
-        {schedule.methods.map((method, index) => (
+      {/* 결제 수단 탭 바 (Payment Methods Tab Bar) */}
+      <div className="flex flex-wrap border-b border-gray-200 gap-1">
+        {schedule.methods.map((method, index) => {
+          const methodInfo = PAYMENT_METHOD_MAP[method.type];
+          return (
+            <button
+              key={method.id}
+              onClick={() => setActiveMethodId(method.id)}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 border-b-2 transition-colors relative group',
+                activeMethodId === method.id
+                  ? 'border-[#1a2867] text-[#1a2867] font-medium'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              )}
+            >
+              <span className="text-sm">
+                {methodInfo?.label || '결제수단'} {index + 1}
+              </span>
+              {schedule.methods.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveMethod(method.id);
+                  }}
+                  className="p-0.5 rounded hover:bg-gray-200 transition-colors"
+                  title="결제 수단 삭제"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </button>
+          );
+        })}
+
+        {/* 결제 수단 추가 버튼 (Add Method Button) */}
+        <button
+          onClick={handleAddMethod}
+          className="flex items-center gap-1 px-3 py-2 text-gray-400 hover:text-[#fab803] transition-colors"
+          title="결제 수단 추가"
+        >
+          <Plus className="h-4 w-4" />
+          <span className="text-xs">추가</span>
+        </button>
+      </div>
+
+      {/* 활성 탭 내용 (Active Tab Content) */}
+      {schedule.methods.map((method, index) => (
+        <div
+          key={method.id}
+          className={activeMethodId === method.id ? 'block' : 'hidden'}
+        >
           <MethodWithDetails
-            key={method.id}
             method={method}
             index={index}
             totalAmount={schedule.amount}
@@ -399,11 +464,8 @@ function ScheduleMethodsSection({
             onProofChange={(proof) => onProofChange(method.id, proof)}
             canRemove={schedule.methods.length > 1}
           />
-        ))}
-
-        {/* 결제 수단 추가 버튼 (Add Method Button) */}
-        <AddMethodButton onClick={onAddMethod} />
-      </div>
+        </div>
+      ))}
 
       {/* 금액 비교 (Amount Comparison) */}
       {validation && (
@@ -508,8 +570,8 @@ function MethodWithDetails({
       {/* 수단별 상세 (Method Details) */}
       <div className="pt-4 border-t border-gray-100">{renderMethodDetails()}</div>
 
-      {/* 증빙 서류 (Proof Document) - 필요 시 */}
-      {requiresProof && (
+      {/* 증빙 서류 (Proof Document) - 필요 시, 기타 결제 제외 */}
+      {requiresProof && method.type !== 'other' && (
         <div className="pt-4 border-t border-gray-100 space-y-4">
           <ProofSelector
             value={method.proof?.type || 'none'}
@@ -559,11 +621,29 @@ function SplitPayorMethodsSection({
   onUpdateMethod,
   onRemoveMethod,
 }: SplitPayorMethodsSectionProps) {
+  // 활성 결제 수단 탭 상태 (Active method tab state)
+  const [activeMethodId, setActiveMethodId] = React.useState<string>(
+    splitPayor.methods[0]?.id || ''
+  );
+
   // 남은 금액 계산 (Calculate remaining amount)
   const remainingAmount = splitPayor.amount - (validation?.methodTotal || 0);
   const payorLabel = splitPayor.payor.type === 'company'
     ? splitPayor.payor.company || splitPayor.payor.name
     : splitPayor.payor.name;
+
+  // 활성 탭이 삭제된 경우 첫 번째 탭으로 변경 (Switch to first tab if active tab is deleted)
+  React.useEffect(() => {
+    if (!splitPayor.methods.find((m) => m.id === activeMethodId)) {
+      setActiveMethodId(splitPayor.methods[0]?.id || '');
+    }
+  }, [splitPayor.methods, activeMethodId]);
+
+  // 결제 수단 추가 후 새 탭으로 전환 (Switch to new tab after adding method)
+  const handleAddMethod = () => {
+    onAddMethod();
+    // 새 메서드의 ID를 알 수 없으므로, 다음 렌더링에서 자동으로 첫 번째로 설정됨
+  };
 
   return (
     <div className="space-y-4">
@@ -586,11 +666,58 @@ function SplitPayorMethodsSection({
         </div>
       </div>
 
-      {/* 결제 수단 목록 (Payment Methods List) */}
-      <div className="space-y-4">
-        {splitPayor.methods.map((method, index) => (
+      {/* 결제 수단 탭 바 (Payment Methods Tab Bar) */}
+      <div className="flex flex-wrap border-b border-gray-200 gap-1">
+        {splitPayor.methods.map((method, index) => {
+          const methodInfo = PAYMENT_METHOD_MAP[method.type];
+          return (
+            <button
+              key={method.id}
+              onClick={() => setActiveMethodId(method.id)}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 border-b-2 transition-colors relative group',
+                activeMethodId === method.id
+                  ? 'border-[#1a2867] text-[#1a2867] font-medium'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              )}
+            >
+              <span className="text-sm">
+                {methodInfo?.label || '결제수단'} {index + 1}
+              </span>
+              {splitPayor.methods.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveMethod(method.id);
+                  }}
+                  className="p-0.5 rounded hover:bg-gray-200 transition-colors"
+                  title="결제 수단 삭제"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </button>
+          );
+        })}
+
+        {/* 결제 수단 추가 버튼 (Add Method Button) */}
+        <button
+          onClick={handleAddMethod}
+          className="flex items-center gap-1 px-3 py-2 text-gray-400 hover:text-[#fab803] transition-colors"
+          title="결제 수단 추가"
+        >
+          <Plus className="h-4 w-4" />
+          <span className="text-xs">추가</span>
+        </button>
+      </div>
+
+      {/* 활성 탭 내용 (Active Tab Content) */}
+      {splitPayor.methods.map((method, index) => (
+        <div
+          key={method.id}
+          className={activeMethodId === method.id ? 'block' : 'hidden'}
+        >
           <SplitPayorMethodCard
-            key={method.id}
             method={method}
             index={index}
             totalAmount={splitPayor.amount}
@@ -599,11 +726,8 @@ function SplitPayorMethodsSection({
             onRemove={() => onRemoveMethod(method.id)}
             canRemove={splitPayor.methods.length > 1}
           />
-        ))}
-
-        {/* 결제 수단 추가 버튼 (Add Method Button) */}
-        <AddMethodButton onClick={onAddMethod} />
-      </div>
+        </div>
+      ))}
 
       {/* 금액 비교 (Amount Comparison) */}
       {validation && (
@@ -721,8 +845,8 @@ function SplitPayorMethodCard({
       {/* 수단별 상세 (Method Details) */}
       <div className="pt-4 border-t border-gray-100">{renderMethodDetails()}</div>
 
-      {/* 증빙 서류 (Proof Document) - 필요 시 */}
-      {requiresProof && (
+      {/* 증빙 서류 (Proof Document) - 필요 시, 기타 결제 제외 */}
+      {requiresProof && method.type !== 'other' && (
         <div className="pt-4 border-t border-gray-100 space-y-4">
           <ProofSelector
             value={method.proof?.type || 'none'}

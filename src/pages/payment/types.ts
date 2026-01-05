@@ -6,7 +6,8 @@
 // - 'single': 한 명이 전액 결제 (Single payor pays all)
 // - 'per-schedule': 일정별로 다른 결제자 (Different payor per schedule)
 // - 'split-amount': 금액을 나눠서 여러 명이 결제 (Split amount among multiple payors)
-export type PayorMode = 'single' | 'per-schedule' | 'split-amount';
+// - 'deferred': 결제자 정보 나중에 입력 (Defer payor information input)
+export type PayorMode = 'single' | 'per-schedule' | 'split-amount' | 'deferred';
 
 // 금액 분할 결제자 (Split Amount Payor)
 // 100% 결제에서도 여러 명이 금액을 나눠서 결제할 때 사용
@@ -159,6 +160,7 @@ export interface FileUploadData {
   files: UploadedFile[];
   instructions: string;
   additionalNotes: string;
+  businessInfo?: BusinessInfoFields; // 사업자 등록증 정보 (Business Registration Info)
 }
 
 export interface OtherData {

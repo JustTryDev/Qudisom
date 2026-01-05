@@ -30,24 +30,6 @@ export function TossSection({ amount, className }: TossSectionProps) {
         </div>
       </div>
 
-      {/* 지원 결제 수단 (Supported Payment Methods) */}
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-gray-700">지원 결제 수단</p>
-        <div className="grid grid-cols-3 gap-2">
-          {paymentOptions.map((option) => (
-            <div
-              key={option.label}
-              className="flex flex-col items-center gap-1.5 rounded-xl border border-gray-100 bg-gray-50 p-3"
-            >
-              <option.icon className="h-5 w-5 text-gray-500" />
-              <span className="text-xs font-medium text-gray-700">
-                {option.label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* 결제 금액 표시 (Payment Amount Display) */}
       <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
         <div className="flex items-center justify-between">

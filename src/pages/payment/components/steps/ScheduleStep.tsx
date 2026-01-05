@@ -155,16 +155,6 @@ export function ScheduleStep({
       className={className}
     >
       <div className="space-y-6">
-        {/* 주문 금액 표시 (Order Amount Display) */}
-        <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">주문 총 금액</span>
-            <span className="text-xl font-bold text-gray-900">
-              {formatAmount(totalOrderAmount)}원
-            </span>
-          </div>
-        </div>
-
         {/* 프리셋 선택 (Preset Selection) - 드롭다운 방식 */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700">
@@ -193,8 +183,8 @@ export function ScheduleStep({
           </select>
         </div>
 
-        {/* 결제 일정 목록 (Schedule List) */}
-        {schedules.length > 0 && (
+        {/* 결제 일정 목록 (Schedule List) - "직접 입력" 선택 시에만 표시 */}
+        {selectedPreset === 'custom' && schedules.length > 0 && (
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700">
               결제 일정 상세
@@ -305,7 +295,8 @@ function ScheduleItem({
       </div>
 
       {/* 금액 & 시점 & 예정일 (Amount & Timing & Due Date) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="space-y-3">
+        {/* 1행: 금액 (전체 폭) */}
         <AmountInput
           label="금액"
           value={schedule.amount}
@@ -315,45 +306,48 @@ function ScheduleItem({
           totalAmount={totalOrderAmount}
         />
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-gray-700">결제 시점</label>
-          <select
-            value={schedule.timing}
-            onChange={(e) =>
-              onUpdate({ timing: e.target.value as PaymentTiming })
-            }
-            className={cn(
-              'w-full h-9 rounded-xl border px-3 text-sm transition-colors',
-              'focus:border-[#1a2867] focus:outline-none focus:ring-2 focus:ring-[#1a2867]/20',
-              'border-gray-200'
-            )}
-          >
-            {PAYMENT_TIMINGS.map((timing) => (
-              <option key={timing.value} value={timing.value}>
-                {timing.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* 2행: 결제 시점 + 결제 예정일 (2열 그리드) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-gray-700">결제 시점</label>
+            <select
+              value={schedule.timing}
+              onChange={(e) =>
+                onUpdate({ timing: e.target.value as PaymentTiming })
+              }
+              className={cn(
+                'w-full h-9 rounded-xl border px-3 text-sm transition-colors',
+                'focus:border-[#1a2867] focus:outline-none focus:ring-2 focus:ring-[#1a2867]/20',
+                'border-gray-200'
+              )}
+            >
+              {PAYMENT_TIMINGS.map((timing) => (
+                <option key={timing.value} value={timing.value}>
+                  {timing.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* 결제 예정일 (Payment Due Date) */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-gray-700">
-            <div className="flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
-              결제 예정일
-            </div>
-          </label>
-          <input
-            type="date"
-            value={schedule.dueDate || ''}
-            onChange={(e) => onUpdate({ dueDate: e.target.value })}
-            className={cn(
-              'w-full h-9 rounded-xl border px-3 text-sm transition-colors',
-              'focus:border-[#1a2867] focus:outline-none focus:ring-2 focus:ring-[#1a2867]/20',
-              'border-gray-200'
-            )}
-          />
+          {/* 결제 예정일 (Payment Due Date) */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-gray-700">
+              <div className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                결제 예정일
+              </div>
+            </label>
+            <input
+              type="date"
+              value={schedule.dueDate || ''}
+              onChange={(e) => onUpdate({ dueDate: e.target.value })}
+              className={cn(
+                'w-full h-9 rounded-xl border px-3 text-sm transition-colors',
+                'focus:border-[#1a2867] focus:outline-none focus:ring-2 focus:ring-[#1a2867]/20',
+                'border-gray-200'
+              )}
+            />
+          </div>
         </div>
       </div>
     </div>

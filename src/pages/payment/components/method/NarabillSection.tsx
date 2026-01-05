@@ -1,10 +1,11 @@
 // 나라빌 섹션 컴포넌트 (Narabill Section Component)
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { FileText, ExternalLink, Info, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { FileUploadData, UploadedFile } from '../../types';
+import type { FileUploadData, UploadedFile, BusinessInfoFields } from '../../types';
 import { FileUploader } from '../shared/FileUploader';
+import { BusinessInfoSection } from '../business/BusinessInfoSection';
 
 interface NarabillSectionProps {
   value: FileUploadData | null;
@@ -49,6 +50,14 @@ export function NarabillSection({
     [data, onChange]
   );
 
+  // 사업자 정보 변경 핸들러 (Business Info Change Handler)
+  const handleBusinessInfoChange = useCallback(
+    (businessInfo: BusinessInfoFields) => {
+      onChange({ ...data, businessInfo });
+    },
+    [data, onChange]
+  );
+
   return (
     <div className={cn('space-y-4', className)}>
       {/* 나라빌 안내 (Narabill Info) */}
@@ -73,6 +82,15 @@ export function NarabillSection({
         </div>
       </div>
 
+      {/* 사업자 등록증 (Business Registration Certificate) */}
+      <BusinessInfoSection
+        value={data.businessInfo}
+        onChange={handleBusinessInfoChange}
+        title="사업자 등록증 첨부"
+        description="공공기관 전자조달을 위해 사업자 등록증이 필요합니다"
+        disabled={disabled}
+      />
+
       {/* 서류 업로드 (Document Upload) */}
       <div className="space-y-2">
         <label className="text-sm font-medium text-gray-700">
@@ -87,46 +105,6 @@ export function NarabillSection({
           showInstructions
           instructionsPlaceholder="이 파일에 대한 수정 요청 또는 코멘트를 입력해주세요"
           disabled={disabled}
-        />
-      </div>
-
-      {/* 발주 가이드 입력 (Order Guide Input) */}
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium text-gray-700">
-          발주 가이드 (선택)
-        </label>
-        <textarea
-          value={data.instructions}
-          onChange={handleInstructionsChange}
-          placeholder="발주 시 참고할 사항이 있으면 입력해주세요"
-          disabled={disabled}
-          rows={3}
-          className={cn(
-            'w-full rounded-xl border px-4 py-3 text-sm transition-colors resize-none',
-            'focus:border-[#fab803] focus:outline-none focus:ring-2 focus:ring-[#fab803]/20',
-            'disabled:bg-gray-50 disabled:text-gray-400',
-            'border-gray-200'
-          )}
-        />
-      </div>
-
-      {/* 추가 메모 (Additional Notes) */}
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium text-gray-700">
-          추가 메모 (선택)
-        </label>
-        <textarea
-          value={data.additionalNotes}
-          onChange={handleNotesChange}
-          placeholder="기타 참고 사항을 입력해주세요"
-          disabled={disabled}
-          rows={2}
-          className={cn(
-            'w-full rounded-xl border px-4 py-3 text-sm transition-colors resize-none',
-            'focus:border-[#fab803] focus:outline-none focus:ring-2 focus:ring-[#fab803]/20',
-            'disabled:bg-gray-50 disabled:text-gray-400',
-            'border-gray-200'
-          )}
         />
       </div>
 
