@@ -9,7 +9,6 @@ import { BusinessInfoDisplay } from '../business/BusinessInfoDisplay';
 import { OcrUploader, OcrResultBanner } from '../business/OcrUploader';
 import { OcrResultReview } from '../business/OcrResultReview';
 import { IssueDatePicker } from '../business/IssueDatePicker';
-import { RecipientModeSelector } from './ProofSelector';
 
 type InputMode = 'select' | 'ocr' | 'manual' | 'review';
 
@@ -35,24 +34,18 @@ export function TaxInvoiceForm({
   const [inputMode, setInputMode] = useState<InputMode>('select');
   const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfoFields>(
-    value.differentRecipient || EMPTY_BUSINESS_INFO_FIELDS
+    EMPTY_BUSINESS_INFO_FIELDS
+  );
+  // 사업자 정보 접힘/펼침 상태 (existingBusinessInfo가 있으면 기본 접힘)
+  const [isBusinessInfoCollapsed, setIsBusinessInfoCollapsed] = useState<boolean>(
+    !!existingBusinessInfo
   );
 
-  const recipientMode = value.recipientMode || 'same-as-payor';
+  // 🆕 사업자 정보가 충분히 입력되었는지 확인 (회사명 + 사업자등록번호 필수)
+  const hasValidBusinessInfo = !!(businessInfo.companyName && businessInfo.businessNumber);
 
-  const handleRecipientModeChange = useCallback(
-    (mode: 'same-as-payor' | 'different') => {
-      onChange({
-        ...value,
-        recipientMode: mode,
-        differentRecipient: mode === 'different' ? businessInfo : undefined,
-      });
-      if (mode === 'different' && inputMode === 'select') {
-        setInputMode('select');
-      }
-    },
-    [value, onChange, businessInfo, inputMode]
-  );
+  // 수령인은 항상 결제자와 동일 (피드백 3: 수령인 섹션 삭제)
+  // Recipient is always same as payor (Feedback 3: Remove recipient section)
 
   const handleOcrComplete = useCallback(
     (result: OcrResult) => {
@@ -74,10 +67,11 @@ export function TaxInvoiceForm({
       setBusinessInfo(info);
       onChange({
         ...value,
-        recipientMode: 'different',
-        differentRecipient: info,
+        recipientMode: 'same-as-payor',
       });
+      // OCR 승인 시 바로 접힌 상태로 전환 (BusinessInfoSection 패턴 적용)
       setInputMode('manual');
+      setIsBusinessInfoCollapsed(true);
     },
     [value, onChange]
   );
@@ -90,12 +84,8 @@ export function TaxInvoiceForm({
   const handleBusinessInfoChange = useCallback(
     (info: BusinessInfoFields) => {
       setBusinessInfo(info);
-      onChange({
-        ...value,
-        differentRecipient: info,
-      });
     },
-    [value, onChange]
+    []
   );
 
   const handleFieldEdit = useCallback(
@@ -134,102 +124,61 @@ export function TaxInvoiceForm({
 
   return (
     <div className={cn('space-y-6', className)}>
-      {/* 1. 수령인 선택 (Recipient Selection) */}
-      <RecipientModeSelector
-        value={recipientMode}
-        onChange={handleRecipientModeChange}
-        payorName={payorName}
-        disabled={disabled}
-      />
-
-      {/* 2. 사업자 정보 입력/표시 (Business Info Input/Display) */}
-      {recipientMode === 'same-as-payor' ? (
-        existingBusinessInfo ? (
-          /* 🎨 이미 입력된 정보 표시만 (Already entered info - display only) */
+      {/* 사업자 정보 입력/표시 (Business Info Input/Display) */}
+      {/* BusinessInfoSection.tsx 패턴으로 단순화 */}
+      {existingBusinessInfo ? (
+        /* existingBusinessInfo가 있는 경우 (나라빌/수의계약에서 전달됨) */
+        isBusinessInfoCollapsed ? (
           <BusinessInfoDisplay
             info={existingBusinessInfo}
-            title="사업자 정보가 이미 입력되었습니다"
+            title="사업자 정보가 입력되었습니다"
+            onEdit={() => setIsBusinessInfoCollapsed(false)}
           />
         ) : (
-          /* 정보 없으면 기존대로 입력 (No info - input as usual) */
           <div className="space-y-4">
-            {/* 안내 메시지 (Notice) */}
-            <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
-              <p className="text-sm font-medium text-blue-900">
-                세금계산서 발행을 위해 사업자 등록증을 첨부해주세요
+            <div className="rounded-xl bg-amber-50 border border-amber-100 p-4">
+              <p className="text-sm font-medium text-amber-900">
+                사업자 정보를 수정하고 있습니다
               </p>
-              <p className="text-xs text-blue-700 mt-1">
-                OCR로 자동 인식하거나 직접 입력할 수 있습니다
+              <p className="text-xs text-amber-700 mt-1">
+                수정이 완료되면 아래 '확인 완료' 버튼을 눌러주세요
               </p>
             </div>
-
-            {/* OCR 결과 배너 (OCR Result Banner) */}
-            {ocrResult?.success && inputMode === 'manual' && (
-              <OcrResultBanner
-                confidence={ocrResult.confidence}
-                onRescan={handleRescan}
-              />
-            )}
-
-            {/* 입력 방식 선택 (Input Mode Selection) */}
-            {inputMode === 'select' && (
+            <BusinessInfoForm
+              value={businessInfo}
+              onChange={handleBusinessInfoChange}
+              disabled={disabled}
+              showAllFields={true}
+            />
+            <button
+              type="button"
+              onClick={() => setIsBusinessInfoCollapsed(true)}
+              className="w-full py-2.5 px-4 rounded-xl bg-[#1a2867] text-white text-sm font-medium hover:bg-[#2a3877] transition-colors"
+            >
+              확인 완료
+            </button>
+          </div>
+        )
+      ) : (
+        /* existingBusinessInfo가 없는 경우 - 직접 입력 (무통장 입금 등) */
+        <div className="space-y-4">
+          {/* 입력 방식 선택 (Input Mode Selection) */}
+          {inputMode === 'select' && (
+            <>
+              <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
+                <p className="text-sm font-medium text-blue-900">
+                  세금계산서 발행을 위해 사업자 등록증을 첨부해주세요
+                </p>
+                <p className="text-xs text-blue-700 mt-1">
+                  OCR로 자동 인식하거나 직접 입력할 수 있습니다
+                </p>
+              </div>
               <OcrUploader
                 onOcrComplete={handleOcrComplete}
                 onManualInput={handleManualInput}
                 disabled={disabled}
               />
-            )}
-
-            {/* OCR 결과 검토 (OCR Result Review) */}
-            {inputMode === 'review' && ocrResult && (
-              <OcrResultReview
-                ocrResult={ocrResult}
-                currentValue={businessInfo}
-                onAccept={handleOcrAccept}
-                onReject={handleOcrReject}
-                onFieldEdit={handleFieldEdit}
-              />
-            )}
-
-            {/* 사업자 정보 폼 (Business Info Form) */}
-            {inputMode === 'manual' && (
-              <BusinessInfoForm
-                value={businessInfo}
-                onChange={handleBusinessInfoChange}
-                disabled={disabled}
-                showAllFields={true}
-              />
-            )}
-          </div>
-        )
-      ) : (
-        /* 다른 수령인일 때는 항상 입력 (Different recipient - always input) */
-        <div className="space-y-4">
-          {/* 안내 메시지 (Notice) */}
-          <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
-            <p className="text-sm font-medium text-blue-900">
-              세금계산서 수령인의 사업자 등록증을 첨부해주세요
-            </p>
-            <p className="text-xs text-blue-700 mt-1">
-              OCR로 자동 인식하거나 직접 입력할 수 있습니다
-            </p>
-          </div>
-
-          {/* OCR 결과 배너 (OCR Result Banner) */}
-          {ocrResult?.success && inputMode === 'manual' && (
-            <OcrResultBanner
-              confidence={ocrResult.confidence}
-              onRescan={handleRescan}
-            />
-          )}
-
-          {/* 입력 방식 선택 (Input Mode Selection) */}
-          {inputMode === 'select' && (
-            <OcrUploader
-              onOcrComplete={handleOcrComplete}
-              onManualInput={handleManualInput}
-              disabled={disabled}
-            />
+            </>
           )}
 
           {/* OCR 결과 검토 (OCR Result Review) */}
@@ -243,14 +192,41 @@ export function TaxInvoiceForm({
             />
           )}
 
-          {/* 사업자 정보 폼 (Business Info Form) */}
+          {/* 사업자 정보 폼 (Business Info Form) - BusinessInfoSection 패턴 적용 */}
           {inputMode === 'manual' && (
-            <BusinessInfoForm
-              value={businessInfo}
-              onChange={handleBusinessInfoChange}
-              disabled={disabled}
-              showAllFields={true}
-            />
+            isBusinessInfoCollapsed ? (
+              /* 접힌 상태: 요약 카드 (Collapsed State) */
+              <BusinessInfoDisplay
+                info={businessInfo}
+                title="사업자 정보 입력 완료"
+                onEdit={() => setIsBusinessInfoCollapsed(false)}
+              />
+            ) : (
+              /* 펼친 상태: 전체 폼 (Expanded State) */
+              <div className="space-y-3">
+                {ocrResult?.success && (
+                  <OcrResultBanner
+                    confidence={ocrResult.confidence}
+                    onRescan={handleRescan}
+                  />
+                )}
+                <BusinessInfoForm
+                  value={businessInfo}
+                  onChange={handleBusinessInfoChange}
+                  disabled={disabled}
+                  showAllFields={true}
+                />
+                {hasValidBusinessInfo && (
+                  <button
+                    type="button"
+                    onClick={() => setIsBusinessInfoCollapsed(true)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-[#1a2867] text-white text-sm font-medium hover:bg-[#2a3877] transition-colors"
+                  >
+                    확인 완료
+                  </button>
+                )}
+              </div>
+            )
           )}
         </div>
       )}
@@ -282,17 +258,10 @@ export function TaxInvoiceSummary({
   payorName,
   className,
 }: TaxInvoiceSummaryProps) {
-  const recipientName =
-    proof.recipientMode === 'same-as-payor'
-      ? payorName
-      : proof.differentRecipient?.companyName;
-
+  // 피드백 3: 수령인은 항상 결제자와 동일
+  // Feedback 3: Recipient is always same as payor
   return (
     <div className={cn('space-y-2', className)}>
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-gray-500">수령인</span>
-        <span className="font-medium text-gray-900">{recipientName || '-'}</span>
-      </div>
       {proof.preferredIssueDate && proof.issueDate && (
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-500">발행 희망일</span>

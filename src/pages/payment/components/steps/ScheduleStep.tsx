@@ -1,7 +1,7 @@
 // Step 1: 결제 일정 컴포넌트 (Payment Schedule Step Component)
 
 import React, { useCallback, useMemo } from 'react';
-import { Plus, X, Calendar, AlertTriangle } from 'lucide-react';
+import { Plus, X, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PaymentSchedule, PaymentTiming } from '../../types';
 import {
@@ -183,11 +183,17 @@ export function ScheduleStep({
           </select>
         </div>
 
-        {/* 결제 일정 목록 (Schedule List) - "직접 입력" 선택 시에만 표시 */}
-        {selectedPreset === 'custom' && schedules.length > 0 && (
+        {/* 결제 일정 목록 (Schedule List) */}
+        {/* 피드백 1: 프리셋 선택 후 예정일/시간만 수정 가능, custom일 때만 전체 수정 가능 */}
+        {selectedPreset && schedules.length > 0 && (
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700">
               결제 일정 상세
+              {selectedPreset !== 'custom' && (
+                <span className="ml-2 text-xs text-gray-500 font-normal">
+                  (예정일/시간만 수정 가능)
+                </span>
+              )}
             </label>
             <div className="space-y-3">
               {schedules.map((schedule, index) => (
@@ -199,20 +205,23 @@ export function ScheduleStep({
                   totalOrderAmount={totalOrderAmount}
                   onUpdate={(data) => handleUpdateSchedule(schedule.id, data)}
                   onRemove={() => handleRemoveSchedule(schedule.id)}
-                  canRemove={schedules.length > 1}
+                  canRemove={selectedPreset === 'custom' && schedules.length > 1}
+                  isCustomPreset={selectedPreset === 'custom'}
                 />
               ))}
             </div>
 
-            {/* 일정 추가 버튼 (Add Schedule Button) */}
-            <button
-              type="button"
-              onClick={handleAddSchedule}
-              className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-3 text-sm font-medium text-gray-500 hover:border-[#fab803] hover:text-[#fab803] transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              결제 일정 추가
-            </button>
+            {/* 일정 추가 버튼 (Add Schedule Button) - custom 프리셋일 때만 표시 */}
+            {selectedPreset === 'custom' && (
+              <button
+                type="button"
+                onClick={handleAddSchedule}
+                className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-3 text-sm font-medium text-gray-500 hover:border-[#fab803] hover:text-[#fab803] transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                결제 일정 추가
+              </button>
+            )}
           </div>
         )}
 
@@ -251,6 +260,7 @@ interface ScheduleItemProps {
   onUpdate: (data: Partial<PaymentSchedule>) => void;
   onRemove: () => void;
   canRemove: boolean;
+  isCustomPreset: boolean; // 기타 입력(custom) 프리셋인지 여부
 }
 
 function ScheduleItem({
@@ -261,6 +271,7 @@ function ScheduleItem({
   onUpdate,
   onRemove,
   canRemove,
+  isCustomPreset,
 }: ScheduleItemProps) {
   const isDeferred = schedule.timing === 'post-ship';
 
@@ -296,58 +307,57 @@ function ScheduleItem({
 
       {/* 금액 & 시점 & 예정일 (Amount & Timing & Due Date) */}
       <div className="space-y-3">
-        {/* 1행: 금액 (전체 폭) */}
-        <AmountInput
-          label="금액"
-          value={schedule.amount}
-          onChange={(amount) => onUpdate({ amount })}
-          size="sm"
-          percentageButtons={[100, 50, 30]}
-          totalAmount={totalOrderAmount}
-        />
+        {/* 1행: 금액 (전체 폭) - custom 프리셋일 때만 수정 가능 */}
+        {isCustomPreset ? (
+          <AmountInput
+            label="금액"
+            value={schedule.amount}
+            onChange={(amount) => onUpdate({ amount })}
+            size="sm"
+            percentageButtons={[100, 50, 30]}
+            totalAmount={totalOrderAmount}
+          />
+        ) : (
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-gray-700">금액</label>
+            <div className="h-9 flex items-center px-3 rounded-xl bg-gray-100 text-sm text-gray-700">
+              {formatAmount(schedule.amount)}원
+            </div>
+          </div>
+        )}
 
         {/* 2행: 결제 시점 + 결제 예정일 (2열 그리드) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* 결제 시점 - custom 프리셋일 때만 수정 가능 */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-gray-700">결제 시점</label>
-            <select
-              value={schedule.timing}
-              onChange={(e) =>
-                onUpdate({ timing: e.target.value as PaymentTiming })
-              }
-              className={cn(
-                'w-full h-9 rounded-xl border px-3 text-sm transition-colors',
-                'focus:border-[#1a2867] focus:outline-none focus:ring-2 focus:ring-[#1a2867]/20',
-                'border-gray-200'
-              )}
-            >
-              {PAYMENT_TIMINGS.map((timing) => (
-                <option key={timing.value} value={timing.value}>
-                  {timing.label}
-                </option>
-              ))}
-            </select>
+            {isCustomPreset ? (
+              <select
+                value={schedule.timing}
+                onChange={(e) =>
+                  onUpdate({ timing: e.target.value as PaymentTiming })
+                }
+                className={cn(
+                  'w-full h-9 rounded-xl border px-3 text-sm transition-colors',
+                  'focus:border-[#1a2867] focus:outline-none focus:ring-2 focus:ring-[#1a2867]/20',
+                  'border-gray-200'
+                )}
+              >
+                {PAYMENT_TIMINGS.map((timing) => (
+                  <option key={timing.value} value={timing.value}>
+                    {timing.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="h-9 flex items-center px-3 rounded-xl bg-gray-100 text-sm text-gray-700">
+                {PAYMENT_TIMINGS.find((t) => t.value === schedule.timing)?.label}
+              </div>
+            )}
           </div>
 
-          {/* 결제 예정일 (Payment Due Date) */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700">
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
-                결제 예정일
-              </div>
-            </label>
-            <input
-              type="date"
-              value={schedule.dueDate || ''}
-              onChange={(e) => onUpdate({ dueDate: e.target.value })}
-              className={cn(
-                'w-full h-9 rounded-xl border px-3 text-sm transition-colors',
-                'focus:border-[#1a2867] focus:outline-none focus:ring-2 focus:ring-[#1a2867]/20',
-                'border-gray-200'
-              )}
-            />
-          </div>
+          {/* 🆕 결제 예정일은 Step 3 (MethodStep)에서 입력 */}
+          {/* Due date input moved to Step 3 (MethodStep) */}
         </div>
       </div>
     </div>

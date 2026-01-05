@@ -12,6 +12,8 @@ interface MethodSelectorProps {
   disabled?: boolean;
   excludeTypes?: PaymentMethodType[];
   className?: string;
+  // 피드백 4: 접기 기능 (Collapse Feature)
+  collapsible?: boolean;
 }
 
 export function MethodSelector({
@@ -20,7 +22,9 @@ export function MethodSelector({
   disabled = false,
   excludeTypes = [],
   className,
+  collapsible = false,
 }: MethodSelectorProps) {
+  const [isExpanded, setIsExpanded] = React.useState(!collapsible);
   const getIcon = (type: PaymentMethodType) => {
     switch (type) {
       case 'toss':
@@ -44,6 +48,42 @@ export function MethodSelector({
     (m) => !excludeTypes.includes(m.type)
   );
 
+  const selectedMethod = PAYMENT_METHODS.find((m) => m.type === value);
+  const SelectedIcon = getIcon(value);
+
+  // 선택 후 자동 접기 (Auto collapse after selection)
+  const handleChange = (type: PaymentMethodType) => {
+    onChange(type);
+    if (collapsible) {
+      setIsExpanded(false);
+    }
+  };
+
+  // 피드백 4: 접힌 상태 - 선택된 항목만 컴팩트하게 표시
+  if (collapsible && !isExpanded && selectedMethod) {
+    return (
+      <div className={cn('flex items-center justify-between', className)}>
+        <div className="flex items-center gap-3">
+          <div className="rounded-full p-2 bg-[#fab803]/20">
+            <SelectedIcon className="h-4 w-4 text-[#1a2867]" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-900">{selectedMethod.label}</p>
+            <p className="text-xs text-gray-500">{selectedMethod.description}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsExpanded(true)}
+          disabled={disabled}
+          className="text-sm text-[#1a2867] hover:text-[#fab803] font-medium transition-colors"
+        >
+          변경
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className={cn('grid grid-cols-2 md:grid-cols-3 gap-3', className)}>
       {availableMethods.map((method) => {
@@ -54,7 +94,7 @@ export function MethodSelector({
           <button
             key={method.type}
             type="button"
-            onClick={() => onChange(method.type)}
+            onClick={() => handleChange(method.type)}
             disabled={disabled}
             className={cn(
               'flex flex-col items-center gap-2 rounded-xl border p-4 transition-all',

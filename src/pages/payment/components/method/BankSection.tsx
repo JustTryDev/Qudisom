@@ -47,7 +47,46 @@ export function BankSection({
 
   return (
     <div className={cn('space-y-4', className)}>
-      {/* 입금 계좌 정보 (Bank Account Info) */}
+      {/* 피드백 4: 입금자명 + 안내 섹션을 먼저 배치 */}
+
+      {/* 1. 입금자명 입력 (Depositor Name Input) */}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-gray-700">
+          입금자명
+          <span className="text-red-500 ml-0.5">*</span>
+        </label>
+        <input
+          type="text"
+          value={data.depositorName}
+          onChange={handleDepositorNameChange}
+          placeholder="입금자명을 입력해주세요"
+          disabled={disabled}
+          className={cn(
+            'w-full rounded-xl border px-4 py-3 text-sm transition-colors',
+            'focus:border-[#fab803] focus:outline-none focus:ring-2 focus:ring-[#fab803]/20',
+            'disabled:bg-gray-50 disabled:text-gray-400',
+            'border-gray-200'
+          )}
+        />
+        <p className="text-xs text-gray-500">
+          입금하실 통장의 예금주명을 입력해주세요
+        </p>
+      </div>
+
+      {/* 2. 안내 사항 (Notice) */}
+      <div className="flex items-start gap-3 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
+        <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+        <div className="text-sm text-blue-700">
+          <p className="font-medium">무통장 입금 안내</p>
+          <ul className="mt-1 space-y-0.5 text-xs">
+            <li>• 주문 후 3일 이내에 입금해주세요</li>
+            <li>• 입금자명이 다를 경우 반드시 알려주세요</li>
+            <li>• 입금 확인 후 주문이 진행됩니다</li>
+          </ul>
+        </div>
+      </div>
+
+      {/* 3. 입금 계좌 정보 (Bank Account Info) - 하단으로 이동 */}
       <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Building2 className="h-5 w-5 text-gray-500" />
@@ -100,43 +139,6 @@ export function BankSection({
           <span className="text-lg font-bold text-[#1a2867]">
             {amount.toLocaleString()}원
           </span>
-        </div>
-      </div>
-
-      {/* 입금자명 입력 (Depositor Name Input) */}
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium text-gray-700">
-          입금자명
-          <span className="text-red-500 ml-0.5">*</span>
-        </label>
-        <input
-          type="text"
-          value={data.depositorName}
-          onChange={handleDepositorNameChange}
-          placeholder="입금자명을 입력해주세요"
-          disabled={disabled}
-          className={cn(
-            'w-full rounded-xl border px-4 py-3 text-sm transition-colors',
-            'focus:border-[#fab803] focus:outline-none focus:ring-2 focus:ring-[#fab803]/20',
-            'disabled:bg-gray-50 disabled:text-gray-400',
-            'border-gray-200'
-          )}
-        />
-        <p className="text-xs text-gray-500">
-          입금하실 통장의 예금주명을 입력해주세요
-        </p>
-      </div>
-
-      {/* 안내 사항 (Notice) */}
-      <div className="flex items-start gap-3 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
-        <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
-        <div className="text-sm text-blue-700">
-          <p className="font-medium">무통장 입금 안내</p>
-          <ul className="mt-1 space-y-0.5 text-xs">
-            <li>• 주문 후 3일 이내에 입금해주세요</li>
-            <li>• 입금자명이 다를 경우 반드시 알려주세요</li>
-            <li>• 입금 확인 후 주문이 진행됩니다</li>
-          </ul>
         </div>
       </div>
     </div>

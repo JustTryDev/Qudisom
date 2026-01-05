@@ -59,10 +59,6 @@ export function UnifiedPayment({
     addSplitPayor,
     updateSplitPayor,
     removeSplitPayor,
-    // 🆕 일정별 결제자 배분 관련 (Schedule payor allocation related)
-    addAllocation,
-    updateAllocation,
-    removeAllocation,
     // 분할 결제자 결제 수단 관련 (Split payor method related)
     addSplitPayorMethod,
     updateSplitPayorMethod,
@@ -224,10 +220,6 @@ export function UnifiedPayment({
           schedules={payment.schedules}
           totalOrderAmount={orderAmount}
           savedPayors={savedPayors}
-          allocations={payment.schedulePayorAllocations}
-          onAddAllocation={addAllocation}
-          onUpdateAllocation={updateAllocation}
-          onRemoveAllocation={removeAllocation}
           onPayorModeChange={setPayorMode}
           onSinglePayorChange={setSinglePayor}
           onSchedulePayorChange={setSchedulePayor}
@@ -252,9 +244,11 @@ export function UnifiedPayment({
           onAddMethod={addPaymentMethod}
           onUpdateMethod={updatePaymentMethod}
           onRemoveMethod={removePaymentMethod}
+          onUpdateSchedule={updateSchedule}
           onAddSplitPayorMethod={addSplitPayorMethod}
           onUpdateSplitPayorMethod={updateSplitPayorMethod}
           onRemoveSplitPayorMethod={removeSplitPayorMethod}
+          onUpdateSplitPayor={updateSplitPayor}
           onSetProof={setProof}
           onComplete={handleMethodComplete}
           onPrev={() => handlePrevStep(3)}

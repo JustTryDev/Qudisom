@@ -13,6 +13,8 @@ interface ProofSelectorProps {
   showLaterOption?: boolean;
   amount?: number; // 현금영수증 의무발행 확인용 (For cash receipt mandatory check)
   className?: string;
+  // 피드백 4: 접기 기능 (Collapse Feature)
+  collapsible?: boolean;
 }
 
 export function ProofSelector({
@@ -22,7 +24,10 @@ export function ProofSelector({
   showLaterOption = true,
   amount,
   className,
+  collapsible = false,
 }: ProofSelectorProps) {
+  const [isExpanded, setIsExpanded] = React.useState(!collapsible);
+
   const getIcon = (type: ProofType) => {
     switch (type) {
       case 'tax-invoice':
@@ -42,6 +47,42 @@ export function ProofSelector({
     ? PROOF_TYPES
     : PROOF_TYPES.filter((p) => p.value !== 'later');
 
+  const selectedOption = PROOF_TYPES.find((p) => p.value === value);
+  const SelectedIcon = getIcon(value);
+
+  // 선택 후 자동 접기 (Auto collapse after selection)
+  const handleChange = (type: ProofType) => {
+    onChange(type);
+    if (collapsible) {
+      setIsExpanded(false);
+    }
+  };
+
+  // 피드백 4: 접힌 상태 - 선택된 항목만 컴팩트하게 표시
+  if (collapsible && !isExpanded && selectedOption) {
+    return (
+      <div className={cn('space-y-2', className)}>
+        <label className="text-sm font-medium text-gray-700">증빙 서류</label>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="rounded-full p-2 bg-[#fab803]/20">
+              <SelectedIcon className="h-4 w-4 text-[#1a2867]" />
+            </div>
+            <p className="text-sm font-medium text-gray-900">{selectedOption.label}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsExpanded(true)}
+            disabled={disabled}
+            className="text-sm text-[#1a2867] hover:text-[#fab803] font-medium transition-colors"
+          >
+            변경
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={cn('space-y-2', className)}>
       <label className="text-sm font-medium text-gray-700">증빙 서류</label>
@@ -59,7 +100,7 @@ export function ProofSelector({
             <button
               key={option.value}
               type="button"
-              onClick={() => onChange(option.value)}
+              onClick={() => handleChange(option.value)}
               disabled={disabled}
               className={cn(
                 'flex flex-col items-center gap-2 rounded-xl border p-4 transition-all',

@@ -12,7 +12,6 @@ import type {
   PaymentMethod,
   ProofDocument,
   StepStatus,
-  SchedulePayorAllocation,
 } from '../types';
 import {
   INITIAL_UNIFIED_PAYMENT,
@@ -128,10 +127,6 @@ function paymentReducer(state: PaymentState, action: PaymentAction): PaymentStat
         payment: {
           ...state.payment,
           schedules: filteredSchedules,
-          // 🆕 해당 일정의 모든 allocation 제거 (Remove all allocations for this schedule)
-          schedulePayorAllocations: state.payment.schedulePayorAllocations.filter(
-            (alloc) => alloc.scheduleId !== action.payload
-          ),
           contractRequired: filteredSchedules.some(
             (s) => PAYMENT_TIMING_MAP[s.timing]?.isDeferred
           ),
@@ -201,69 +196,6 @@ function paymentReducer(state: PaymentState, action: PaymentAction): PaymentStat
           ...state.payment,
           splitPayors: state.payment.splitPayors.filter(
             (sp) => sp.id !== action.payload
-          ),
-          // 🆕 해당 결제자의 모든 allocation 제거 (Remove all allocations for this payor)
-          schedulePayorAllocations: state.payment.schedulePayorAllocations.filter(
-            (alloc) => alloc.splitPayorId !== action.payload
-          ),
-        },
-      };
-
-    // 일정별 결제자 배분 (Schedule Payor Allocation)
-    case 'ADD_ALLOCATION':
-      return {
-        ...state,
-        payment: {
-          ...state.payment,
-          schedulePayorAllocations: [
-            ...state.payment.schedulePayorAllocations,
-            action.payload,
-          ],
-        },
-      };
-
-    case 'UPDATE_ALLOCATION': {
-      const { id, amount } = action.payload;
-      return {
-        ...state,
-        payment: {
-          ...state.payment,
-          schedulePayorAllocations: state.payment.schedulePayorAllocations.map(
-            (alloc) => (alloc.id === id ? { ...alloc, amount } : alloc)
-          ),
-        },
-      };
-    }
-
-    case 'REMOVE_ALLOCATION':
-      return {
-        ...state,
-        payment: {
-          ...state.payment,
-          schedulePayorAllocations: state.payment.schedulePayorAllocations.filter(
-            (alloc) => alloc.id !== action.payload
-          ),
-        },
-      };
-
-    case 'REMOVE_ALLOCATIONS_BY_SCHEDULE':
-      return {
-        ...state,
-        payment: {
-          ...state.payment,
-          schedulePayorAllocations: state.payment.schedulePayorAllocations.filter(
-            (alloc) => alloc.scheduleId !== action.payload
-          ),
-        },
-      };
-
-    case 'REMOVE_ALLOCATIONS_BY_PAYOR':
-      return {
-        ...state,
-        payment: {
-          ...state.payment,
-          schedulePayorAllocations: state.payment.schedulePayorAllocations.filter(
-            (alloc) => alloc.splitPayorId !== action.payload
           ),
         },
       };
@@ -519,27 +451,6 @@ export function usePaymentState(initialPayment?: Partial<PaymentState>) {
     dispatch({ type: 'REMOVE_SPLIT_PAYOR', payload: id });
   }, []);
 
-  // 일정별 결제자 배분 액션 (Schedule Payor Allocation Actions)
-  const addAllocation = useCallback((allocation: SchedulePayorAllocation) => {
-    dispatch({ type: 'ADD_ALLOCATION', payload: allocation });
-  }, []);
-
-  const updateAllocation = useCallback((id: string, amount: number) => {
-    dispatch({ type: 'UPDATE_ALLOCATION', payload: { id, amount } });
-  }, []);
-
-  const removeAllocation = useCallback((id: string) => {
-    dispatch({ type: 'REMOVE_ALLOCATION', payload: id });
-  }, []);
-
-  const removeAllocationsBySchedule = useCallback((scheduleId: string) => {
-    dispatch({ type: 'REMOVE_ALLOCATIONS_BY_SCHEDULE', payload: scheduleId });
-  }, []);
-
-  const removeAllocationsByPayor = useCallback((payorId: string) => {
-    dispatch({ type: 'REMOVE_ALLOCATIONS_BY_PAYOR', payload: payorId });
-  }, []);
-
   // 분할 결제자 결제 수단 액션 (Split Payor Payment Method Actions)
   const addSplitPayorMethod = useCallback(
     (splitPayorId: string, method: PaymentMethod) => {
@@ -689,13 +600,6 @@ export function usePaymentState(initialPayment?: Partial<PaymentState>) {
     addSplitPayor,
     updateSplitPayor,
     removeSplitPayor,
-
-    // 일정별 결제자 배분 액션 (Schedule Payor Allocation Actions)
-    addAllocation,
-    updateAllocation,
-    removeAllocation,
-    removeAllocationsBySchedule,
-    removeAllocationsByPayor,
 
     // 분할 결제자 결제 수단 액션 (Split Payor Payment Method Actions)
     addSplitPayorMethod,

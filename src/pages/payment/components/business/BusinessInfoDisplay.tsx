@@ -2,19 +2,21 @@
 // 읽기 전용으로 이미 입력된 사업자 정보를 요약해서 보여줌
 
 import React from 'react';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Edit2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BusinessInfoFields } from '../../types';
 
 interface BusinessInfoDisplayProps {
   info: BusinessInfoFields;
   title?: string;
+  onEdit?: () => void; // 수정 버튼 클릭 콜백 (Edit button click callback)
   className?: string;
 }
 
 export function BusinessInfoDisplay({
   info,
   title = '사업자 정보가 이미 입력되었습니다',
+  onEdit,
   className,
 }: BusinessInfoDisplayProps) {
   return (
@@ -22,7 +24,19 @@ export function BusinessInfoDisplay({
       <div className="flex items-start gap-3">
         <CheckCircle className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
         <div className="flex-1 space-y-2">
-          <p className="text-sm font-semibold text-green-900">{title}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-green-900">{title}</p>
+            {onEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-700 hover:text-green-900 hover:bg-green-100 rounded-lg transition-colors"
+              >
+                <Edit2 className="h-3 w-3" />
+                수정
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-1 gap-2 text-xs text-green-800">
             {/* 회사명 (Company Name) */}
             <div className="flex items-center justify-between">

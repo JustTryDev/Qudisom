@@ -17,16 +17,9 @@ export interface SplitPayor {
   payor: PayorInfo;
   amount: number; // 이 결제자가 결제할 금액 (Amount this payor will pay)
   methods: PaymentMethod[]; // 이 결제자의 결제 수단 (This payor's payment methods)
-}
-
-// 일정별 결제자 배분 (Schedule Payor Allocation)
-// 멀티 결제 시 각 결제자가 각 일정에 얼마씩 낼지 매핑
-// 예: 선금 500k에 A가 150k, B가 200k, C가 150k 배분
-export interface SchedulePayorAllocation {
-  id: string;
-  scheduleId: string; // 어느 일정인지 (Which schedule)
-  splitPayorId: string; // 누가 내는지 (Who pays)
-  amount: number; // 얼마를 내는지 (How much to pay)
+  // 🆕 결제 예정일 - 멀티 결제 시 각 결제자별로 다를 수 있음
+  dueDate?: string; // 결제 예정 날짜 (YYYY-MM-DD)
+  dueTime?: string; // 결제 예정 시간 (HH:mm, 당일 결제 시)
 }
 
 export interface UnifiedPayment {
@@ -37,7 +30,6 @@ export interface UnifiedPayment {
   payorMode: PayorMode;
   singlePayor?: PayorInfo;
   splitPayors: SplitPayor[]; // 금액 분할 결제자 목록 (Split amount payors list)
-  schedulePayorAllocations: SchedulePayorAllocation[]; // 일정별 결제자 배분 (Schedule payor allocations)
   savedPayors: SavedPayor[];
 
   // Step 5: 최종 확인 (Final Confirmation)
@@ -56,6 +48,7 @@ export interface PaymentSchedule {
   amount: number;
   timing: PaymentTiming;
   dueDate: string; // 결제 예정 날짜 (Payment due date) - "2024-01-15" 형식
+  dueTime?: string; // 결제 예정 시간 (Payment due time) - "14:00" 형식 (당일 결제 시 사용)
 
   // 결제 주체 (Payor - when payorMode is 'per-schedule')
   payor?: PayorInfo;
@@ -312,12 +305,6 @@ export type PaymentAction =
   | { type: 'ADD_SPLIT_PAYOR_METHOD'; payload: { splitPayorId: string; method: PaymentMethod } }
   | { type: 'UPDATE_SPLIT_PAYOR_METHOD'; payload: { splitPayorId: string; methodId: string; data: Partial<PaymentMethod> } }
   | { type: 'REMOVE_SPLIT_PAYOR_METHOD'; payload: { splitPayorId: string; methodId: string } }
-  // 일정별 결제자 배분 액션 (Schedule Payor Allocation Actions)
-  | { type: 'ADD_ALLOCATION'; payload: SchedulePayorAllocation }
-  | { type: 'UPDATE_ALLOCATION'; payload: { id: string; amount: number } }
-  | { type: 'REMOVE_ALLOCATION'; payload: string }
-  | { type: 'REMOVE_ALLOCATIONS_BY_SCHEDULE'; payload: string } // 일정 삭제 시
-  | { type: 'REMOVE_ALLOCATIONS_BY_PAYOR'; payload: string } // 결제자 삭제 시
   | { type: 'ADD_PAYMENT_METHOD'; payload: { scheduleId: string; method: PaymentMethod } }
   | { type: 'UPDATE_PAYMENT_METHOD'; payload: { scheduleId: string; methodId: string; data: Partial<PaymentMethod> } }
   | { type: 'REMOVE_PAYMENT_METHOD'; payload: { scheduleId: string; methodId: string } }
